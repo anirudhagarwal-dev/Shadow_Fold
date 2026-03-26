@@ -5,44 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow Fold – The Visual Void</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="crt-scanline"></div>
+    <div id="animated-bg"></div>
     <div class="container">
-        <h1>Shadow Fold – The Visual Void</h1>
-        <div class="tabs">
-            <button class="tab-button active" data-tab="encode">Encode</button>
-            <button class="tab-button" data-tab="decode">Decode</button>
+        <div class="glass-card">
+            <header>
+                <h1>SHADOW FOLD</h1>
+                <h2>THE VISUAL VOID</h2>
+            </header>
+
+            <div class="tabs">
+                <button class="tab-button active" data-tab="encode">ENCODE</button>
+                <button class="tab-button" data-tab="decode">DECODE</button>
+            </div>
+
+            <main id="encode" class="tab-content active">
+                <div class="split-layout">
+                    <div class="panel left-panel">
+                        <h3>RIGHT SIDE UP</h3>
+                        <div id="encode-image-drop-zone" class="drop-zone">
+                            <p>Drag & Drop Carrier Image or Click to Upload</p>
+                            <input type="file" id="encode-image-input" accept="image/png, image/bmp" hidden>
+                            <img id="encode-image-preview" class="preview-thumb" src="" alt="Carrier Image Preview">
+                        </div>
+                        <div id="secret-file-drop-zone" class="drop-zone small-drop-zone">
+                            <p>Drag & Drop Secret File</p>
+                            <input type="file" id="secret-file-input" hidden>
+                            <span id="secret-file-name"></span>
+                        </div>
+                    </div>
+                    <div class="panel right-panel">
+                        <h3>THE VOID</h3>
+                        <div class="password-container">
+                            <input type="password" id="encode-password" placeholder="Enter Frequency (Password)">
+                            <button id="encode-toggle-password">SHOW</button>
+                        </div>
+                        <button id="encode-button" class="action-button">FOLD REALITY</button>
+                        <div id="encode-stats" class="stats-container"></div>
+                    </div>
+                </div>
+            </main>
+
+            <main id="decode" class="tab-content">
+                <div class="split-layout">
+                    <div class="panel left-panel">
+                        <h3>ENCODED SIGNAL</h3>
+                        <div id="decode-image-drop-zone" class="drop-zone">
+                            <p>Drag & Drop Encoded Image or Click to Upload</p>
+                            <input type="file" id="decode-image-input" accept="image/png" hidden>
+                            <img id="decode-image-preview" class="preview-thumb" src="" alt="Encoded Image Preview">
+                        </div>
+                    </div>
+                    <div class="panel right-panel">
+                        <h3>REVEALED DATA</h3>
+                        <div class="password-container">
+                            <input type="password" id="decode-password" placeholder="Enter Frequency (Password)">
+                            <button id="decode-toggle-password">SHOW</button>
+                        </div>
+                        <button id="decode-button" class="action-button decode-glow">ENTER THE VOID</button>
+                        <div id="decode-stats" class="stats-container"></div>
+                    </div>
+                </div>
+            </main>
+
+            <div id="loader" class="loader-overlay">
+                <div class="loader-content">
+                    <div class="spinner"></div>
+                    <p id="loader-text">FOLDING REALITY...</p>
+                </div>
+            </div>
         </div>
-        <div id="encode" class="tab-content active">
-            <h2>Encode (Hide Data)</h2>
-            <div class="form-group">
-                <label for="encode-image">Carrier Image (PNG/BMP):</label>
-                <input type="file" id="encode-image" accept="image/png, image/bmp">
-            </div>
-            <div class="form-group">
-                <label for="secret-file">Secret File:</label>
-                <input type="file" id="secret-file">
-            </div>
-            <div class="form-group">
-                <label for="encode-password">Password:</label>
-                <input type="password" id="encode-password">
-            </div>
-            <button id="encode-button">Encode</button>
-        </div>
-        <div id="decode" class="tab-content">
-            <h2>Decode (Reveal Data)</h2>
-            <div class="form-group">
-                <label for="decode-image">Encoded Image (PNG):</label>
-                <input type="file" id="decode-image" accept="image/png">
-            </div>
-            <div class="form-group">
-                <label for="decode-password">Password:</label>
-                <input type="password" id="decode-password">
-            </div>
-            <button id="decode-button">Decode</button>
-        </div>
-        <canvas id="canvas" style="display: none;"></canvas>
     </div>
+    <canvas id="canvas" style="display: none;"></canvas>
     <script src="/build/steganography.js"></script>
     <script src="script.js"></script>
 </body>
