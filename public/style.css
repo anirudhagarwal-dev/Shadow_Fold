@@ -286,3 +286,112 @@ h2 {
     0% { transform: translateY(0); }
     100% { transform: translateY(100%); }
 }
+
+
+/* ===== INTRO SCREEN (CLEAN VERSION) ===== */
+#intro-screen {
+    position: fixed;
+    inset: 0;
+    background: black;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 18px; /* 🔥 fixes spacing */
+    z-index: 9999;
+    animation: fadeOut 1.5s ease 2.5s forwards;
+}
+
+/* ===== SKULL ===== */
+#skull-img {
+    width: 95px; /* 🔥 perfect size */
+    opacity: 0.9;
+    filter: drop-shadow(0 0 12px #ff0033);
+    animation: fadeScale 1.2s ease, pulse 2s infinite;
+}
+
+/* ===== TEXT ===== */
+.intro-text {
+    font-size: 26px;
+    letter-spacing: 4px;
+    color: #ff0033;
+    font-family: 'Orbitron', sans-serif;
+    text-shadow: 0 0 8px #ff0033;
+    margin: 0;
+}
+
+/* ===== ANIMATIONS ===== */
+
+/* smooth entry */
+@keyframes fadeScale {
+    from {
+        opacity: 0;
+        transform: scale(0.7);
+    }
+    to {
+        opacity: 0.9;
+        transform: scale(1);
+    }
+}
+
+/* subtle breathing effect */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+}
+
+/* fade out intro */
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+@keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(2px, -2px); }
+    60% { transform: translate(-1px, 1px); }
+    80% { transform: translate(1px, -1px); }
+    100% { transform: translate(0); }
+}
+
+
+.skull {
+    width: 180px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.base {
+    position: relative;
+    filter: drop-shadow(0 0 20px red);
+}
+
+
+
+
+/* Animations */
+
+@keyframes textGlitch {
+    0% { text-shadow: 2px 0 red, -2px 0 cyan; }
+    50% { text-shadow: -2px 0 red, 2px 0 cyan; }
+    100% { text-shadow: 2px 0 red, -2px 0 cyan; }
+}
+
+/* Fade out */
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
