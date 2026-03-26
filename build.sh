@@ -1,0 +1,1 @@
+emcc --bind -std=c++17 src/main.cpp src/aes.c -o build/steganography.js -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS="['ccall', 'cwrap']"

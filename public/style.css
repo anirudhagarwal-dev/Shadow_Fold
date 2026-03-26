@@ -1,0 +1,93 @@
+body {
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background-color: #1e1e1e;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    border: 1px solid rgba(255, 0, 0, 0.5);
+    width: 600px;
+}
+
+h1 {
+    color: #ff0000;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 2rem;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.tab-button {
+    background-color: transparent;
+    color: #e0e0e0;
+    border: 1px solid #ff0000;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.tab-button.active {
+    background-color: #ff0000;
+    color: #121212;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #ff0000;
+}
+
+input[type="file"],
+input[type="password"] {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: #2a2a2a;
+    border: 1px solid #ff0000;
+    color: #e0e0e0;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #ff0000;
+    color: #121212;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #cc0000;
+}

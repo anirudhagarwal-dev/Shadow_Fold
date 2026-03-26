@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Fold – The Visual Void</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Shadow Fold – The Visual Void</h1>
+        <div class="tabs">
+            <button class="tab-button active" data-tab="encode">Encode</button>
+            <button class="tab-button" data-tab="decode">Decode</button>
+        </div>
+        <div id="encode" class="tab-content active">
+            <h2>Encode (Hide Data)</h2>
+            <div class="form-group">
+                <label for="encode-image">Carrier Image (PNG/BMP):</label>
+                <input type="file" id="encode-image" accept="image/png, image/bmp">
+            </div>
+            <div class="form-group">
+                <label for="secret-file">Secret File:</label>
+                <input type="file" id="secret-file">
+            </div>
+            <div class="form-group">
+                <label for="encode-password">Password:</label>
+                <input type="password" id="encode-password">
+            </div>
+            <button id="encode-button">Encode</button>
+        </div>
+        <div id="decode" class="tab-content">
+            <h2>Decode (Reveal Data)</h2>
+            <div class="form-group">
+                <label for="decode-image">Encoded Image (PNG):</label>
+                <input type="file" id="decode-image" accept="image/png">
+            </div>
+            <div class="form-group">
+                <label for="decode-password">Password:</label>
+                <input type="password" id="decode-password">
+            </div>
+            <button id="decode-button">Decode</button>
+        </div>
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+    <script src="/build/steganography.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

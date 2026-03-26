@@ -1,0 +1,7 @@
+node_modules/
+emsdk/
+tiny-AES-c/
+build/
+.DS_Store
+package-lock.json
+*.o
