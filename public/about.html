@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About – Shadow Fold</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { overflow-y: auto; align-items: flex-start; }
+
+        .nav-bar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 40px;
+            background: rgba(13,13,13,0.94);
+            border-bottom: 1px solid rgba(255,0,51,0.18);
+            backdrop-filter: blur(8px);
+        }
+        .nav-logo { font-family: var(--font-primary); font-size: .88rem; color: var(--primary-color); letter-spacing: .2em; text-decoration: none; text-shadow: 0 0 10px var(--primary-color); }
+        .nav-links { display: flex; gap: 28px; }
+        .nav-links a { font-family: var(--font-secondary); font-size: .72rem; color: #666; text-decoration: none; letter-spacing: .12em; text-transform: uppercase; transition: color .2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary-color); }
+
+        .page-wrap { position: relative; z-index: 1; max-width: 900px; width: 90vw; margin: 110px auto 70px; }
+
+        .page-header { text-align: center; margin-bottom: 54px; animation: fadeIn .6s ease; }
+        .page-header h1 { font-family: var(--font-primary); font-size: clamp(1.4rem,4vw,2rem); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); letter-spacing: .15em; }
+        .page-header p { font-family: var(--font-secondary); color: #555; font-size: .8rem; letter-spacing: .1em; margin-top: 10px; }
+
+        /* project intro */
+        .intro-card {
+            background: var(--card-background); border: 1px solid rgba(255,0,51,0.14);
+            border-radius: 10px; padding: 30px 32px; margin-bottom: 40px;
+            animation: fadeIn .5s ease .1s both;
+        }
+        .intro-card .label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .25em; color: rgba(255,0,51,.55); margin-bottom: 10px; }
+        .intro-card h2 { font-family: var(--font-primary); font-size: 1rem; color: #ddd; letter-spacing: .1em; margin-bottom: 14px; }
+        .intro-card p { font-family: var(--font-secondary); font-size: .8rem; color: #5a5a5a; line-height: 1.9; margin-bottom: 10px; }
+        .intro-card p:last-child { margin-bottom: 0; }
+        .intro-card strong { color: #999; }
+
+        /* hackathon badge */
+        .hackathon-badge {
+            display: inline-flex; align-items: center; gap: 12px;
+            background: rgba(255,0,51,0.06); border: 1px solid rgba(255,0,51,0.25);
+            border-radius: 6px; padding: 12px 18px; margin-bottom: 40px;
+            animation: fadeIn .5s ease .15s both;
+        }
+        .badge-icon { font-size: 1.4rem; }
+        .badge-text { font-family: var(--font-secondary); font-size: .75rem; color: #777; }
+        .badge-text strong { font-family: var(--font-primary); color: var(--primary-color); font-size: .78rem; letter-spacing: .1em; display: block; margin-bottom: 2px; }
+
+        /* tech stack */
+        .tech-section { margin-bottom: 44px; animation: fadeIn .5s ease .2s both; }
+        .section-title { font-family: var(--font-primary); font-size: .75rem; color: var(--primary-color); letter-spacing: .2em; margin-bottom: 18px; }
+        .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+        .tech-card {
+            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
+            border-radius: 8px; padding: 16px 18px;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .tech-card:hover { border-color: rgba(255,0,51,0.35); box-shadow: 0 0 16px rgba(255,0,51,0.08); }
+        .tech-icon { font-size: 1.3rem; margin-bottom: 8px; }
+        .tech-name { font-family: var(--font-primary); font-size: .65rem; color: var(--primary-color); letter-spacing: .12em; margin-bottom: 4px; }
+        .tech-role { font-family: var(--font-secondary); font-size: .7rem; color: #4a4a4a; line-height: 1.5; }
+
+        /* team section */
+        .team-section { margin-bottom: 44px; animation: fadeIn .5s ease .3s both; }
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+        .team-card {
+            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
+            border-radius: 10px; padding: 24px 20px; text-align: center;
+            transition: border-color .25s, transform .25s, box-shadow .25s;
+            cursor: default;
+        }
+        .team-card:hover { border-color: rgba(255,0,51,0.38); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(255,0,51,0.1); }
+        .avatar {
+            width: 62px; height: 62px; border-radius: 50%;
+            border: 1px solid rgba(255,0,51,0.3);
+            background: rgba(255,0,51,0.07);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; margin: 0 auto 14px;
+            box-shadow: 0 0 12px rgba(255,0,51,0.15);
+        }
+        .member-name { font-family: var(--font-primary); font-size: .72rem; color: #ddd; letter-spacing: .1em; margin-bottom: 5px; }
+        .member-role { font-family: var(--font-secondary); font-size: .68rem; color: var(--primary-color); letter-spacing: .08em; margin-bottom: 8px; }
+        .member-skills { font-family: var(--font-secondary); font-size: .65rem; color: #444; line-height: 1.6; }
+
+        /* problem & solution */
+        .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 44px; animation: fadeIn .5s ease .4s both; }
+        .ps-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 10px; padding: 22px 24px; }
+        .ps-label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .22em; color: rgba(255,0,51,.55); margin-bottom: 8px; }
+        .ps-title { font-family: var(--font-primary); font-size: .78rem; color: #ccc; letter-spacing: .08em; margin-bottom: 12px; }
+        .ps-list { list-style: none; }
+        .ps-list li { font-family: var(--font-secondary); font-size: .75rem; color: #4a4a4a; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.6; }
+        .ps-list li::before { content: '▸ '; color: var(--primary-color); }
+
+        /* future roadmap */
+        .roadmap { animation: fadeIn .5s ease .5s both; }
+        .roadmap-list { display: flex; flex-direction: column; gap: 10px; }
+        .road-item {
+            display: flex; align-items: center; gap: 14px;
+            background: var(--card-background); border: 1px solid rgba(255,0,51,0.1);
+            border-radius: 8px; padding: 14px 18px;
+            transition: border-color .2s;
+        }
+        .road-item:hover { border-color: rgba(255,0,51,.3); }
+        .road-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+            border: 1px solid rgba(255,0,51,0.5);
+        }
+        .road-dot.done { background: var(--primary-color); box-shadow: 0 0 6px var(--primary-color); }
+        .road-dot.active { background: rgba(255,170,0,0.8); box-shadow: 0 0 6px rgba(255,170,0,0.6); border-color: rgba(255,170,0,0.6); }
+        .road-text { font-family: var(--font-secondary); font-size: .76rem; color: #555; flex: 1; }
+        .road-text strong { color: #888; font-family: var(--font-primary); font-size: .64rem; letter-spacing: .08em; }
+        .road-tag { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .12em; padding: 3px 8px; border-radius: 3px; flex-shrink: 0; }
+        .road-tag.done { color: var(--primary-color); background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.2); }
+        .road-tag.wip { color: rgba(255,170,0,0.8); background: rgba(255,170,0,0.06); border: 1px solid rgba(255,170,0,0.2); }
+        .road-tag.planned { color: #444; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }
+
+        @media(max-width:600px){
+            .nav-bar{padding:12px 20px} .nav-links{display:none}
+            .ps-grid{grid-template-columns:1fr} .team-grid{grid-template-columns:1fr 1fr}
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-scanline"></div>
+    <div id="animated-bg"></div>
+
+    <nav class="nav-bar">
+        <a class="nav-logo" href="index.html">SHADOW FOLD</a>
+        <div class="nav-links">
+            <a href="index.html">ENCODE / DECODE</a>
+            <a href="how-it-works.html">HOW IT WORKS</a>
+            <a href="dashboard.html">DASHBOARD</a>
+            <a href="about.html" class="active">ABOUT</a>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <div class="page-header">
+            <h1>ABOUT</h1>
+            <p>// team vortex-1 · hacknovate 7.0 · cybersecurity / privacy</p>
+        </div>
+
+        <div class="hackathon-badge">
+            <div class="badge-icon">⚡</div>
+            <div class="badge-text">
+                <strong>HACKNOVATE 7.0</strong>
+                Problem Statement: Secure Data Privacy in the Surveillance Era &nbsp;·&nbsp; Theme: Cybersecurity / Privacy (Software)
+            </div>
+        </div>
+
+        <div class="intro-card">
+            <div class="label">// project overview</div>
+            <h2>SHADOW FOLD — THE VISUAL VOID</h2>
+            <p>In an era of mass surveillance, <strong>encrypted files invite suspicion</strong>. The moment a file is flagged as encrypted, it becomes a target. Shadow Fold takes a different approach — it makes the secret file <strong>invisible</strong>.</p>
+            <p>Using steganography, any file can be concealed inside an ordinary image. To anyone observing, it's just a photo. Only someone with the exact password can reveal what lives inside — in the void between the pixels.</p>
+        </div>
+
+        <div class="ps-grid">
+            <div class="ps-card">
+                <div class="ps-label">// the problem</div>
+                <div class="ps-title">WHY ENCRYPTION ISN'T ENOUGH</div>
+                <ul class="ps-list">
+                    <li>Encrypted files flag surveillance systems</li>
+                    <li>Metadata reveals that secrets exist</li>
+                    <li>Coercive environments demand plausible deniability</li>
+                    <li>Journalists, activists, enterprises at risk</li>
+                </ul>
+            </div>
+            <div class="ps-card">
+                <div class="ps-label">// our solution</div>
+                <div class="ps-title">INVISIBLE DATA PROTECTION</div>
+                <ul class="ps-list">
+                    <li>Hides any file inside a carrier image</li>
+                    <li>Password-seeded PRNG scatters the data</li>
+                    <li>Output looks identical to the original</li>
+                    <li>Wrong password returns silence, not error</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tech-section">
+            <div class="section-title">// TECH STACK</div>
+            <div class="tech-grid">
+                <div class="tech-card"><div class="tech-icon">⚙️</div><div class="tech-name">C++</div><div class="tech-role">Core LSB encoding/decoding logic compiled via Emscripten</div></div>
+                <div class="tech-card"><div class="tech-icon">🔷</div><div class="tech-name">WebAssembly</div><div class="tech-role">Near-native performance for pixel-level operations in browser</div></div>
+                <div class="tech-card"><div class="tech-icon">🎨</div><div class="tech-name">Canvas API</div><div class="tech-role">Raw RGBA pixel extraction and stego image output</div></div>
+                <div class="tech-card"><div class="tech-icon">🌐</div><div class="tech-name">JavaScript</div><div class="tech-role">UI layer, PRNG shuffle, file I/O, WASM bridge</div></div>
+                <div class="tech-card"><div class="tech-icon">🖥️</div><div class="tech-name">Node / Express</div><div class="tech-role">Local dev server and WASM module serving</div></div>
+                <div class="tech-card"><div class="tech-icon">🔒</div><div class="tech-name">FNV-1a + Mulberry32</div><div class="tech-role">Password hashing and PRNG for pixel order shuffle</div></div>
+            </div>
+        </div>
+
+        <div class="team-section">
+            <div class="section-title">// TEAM VORTEX-1</div>
+            <div class="team-grid" id="team-grid">
+                <!-- filled by JS — edit names/roles here -->
+            </div>
+        </div>
+
+        <div class="roadmap">
+            <div class="section-title">// ROADMAP</div>
+            <div class="roadmap-list">
+                <div class="road-item">
+                    <div class="road-dot done"></div>
+                    <div class="road-text"><strong>LSB STEGANOGRAPHY ENGINE</strong><br>Password-seeded PRNG pixel shuffle with C++ / Wasm core</div>
+                    <div class="road-tag done">SHIPPED</div>
+                </div>
+                <div class="road-item">
+                    <div class="road-dot done"></div>
+                    <div class="road-text"><strong>ANY FILE TYPE SUPPORT</strong><br>Hide PDFs, ZIPs, images — not just text</div>
+                    <div class="road-tag done">SHIPPED</div>
+                </div>
+                <div class="road-item">
+                    <div class="road-dot done"></div>
+                    <div class="road-text"><strong>CAPACITY METER</strong><br>Live red/green indicator showing how much of the image is used</div>
+                    <div class="road-tag done">SHIPPED</div>
+                </div>
+                <div class="road-item">
+                    <div class="road-dot active"></div>
+                    <div class="road-text"><strong>AES-256 ENCRYPTION LAYER</strong><br>Encrypt payload before LSB injection for dual-layer security</div>
+                    <div class="road-tag wip">IN PROGRESS</div>
+                </div>
+                <div class="road-item">
+                    <div class="road-dot"></div>
+                    <div class="road-text"><strong>STEGANALYSIS RESISTANCE</strong><br>Adaptive LSB to resist statistical detection tools like StegExpose</div>
+                    <div class="road-tag planned">PLANNED</div>
+                </div>
+                <div class="road-item">
+                    <div class="road-dot"></div>
+                    <div class="road-text"><strong>DUAL-PASSWORD DECOY MODE</strong><br>"Upside Down" mode — one password shows decoy data, another reveals real data</div>
+                    <div class="road-tag planned">PLANNED</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Edit your team members here
+        const team = [
+            { emoji: '💀', name: 'MEMBER 1', role: 'Team Lead', skills: 'C++ · WebAssembly · Steganography' },
+            { emoji: '🔐', name: 'MEMBER 2', role: 'Backend / WASM', skills: 'Emscripten · LSB Engine · Crypto' },
+            { emoji: '🎨', name: 'MEMBER 3', role: 'Frontend', skills: 'JS · Canvas API · UI/UX' },
+            { emoji: '⚡', name: 'MEMBER 4', role: 'Security Research', skills: 'PRNG · Steganalysis · Testing' },
+        ];
+
+        const grid = document.getElementById('team-grid');
+        team.forEach(m => {
+            grid.innerHTML += `
+                <div class="team-card">
+                    <div class="avatar">${m.emoji}</div>
+                    <div class="member-name">${m.name}</div>
+                    <div class="member-role">${m.role}</div>
+                    <div class="member-skills">${m.skills}</div>
+                </div>`;
+        });
+    </script>
+</body>
+</html>

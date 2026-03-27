@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How It Works – Shadow Fold</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { overflow-y: auto; align-items: flex-start; }
+
+        .nav-bar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 40px;
+            background: rgba(13,13,13,0.94);
+            border-bottom: 1px solid rgba(255,0,51,0.18);
+            backdrop-filter: blur(8px);
+        }
+        .nav-logo {
+            font-family: var(--font-primary); font-size: .88rem;
+            color: var(--primary-color); letter-spacing: .2em;
+            text-decoration: none;
+            text-shadow: 0 0 10px var(--primary-color);
+        }
+        .nav-links { display: flex; gap: 28px; }
+        .nav-links a {
+            font-family: var(--font-secondary); font-size: .72rem;
+            color: #666; text-decoration: none; letter-spacing: .12em;
+            text-transform: uppercase; transition: color .2s;
+        }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary-color); }
+
+        .page-wrap {
+            position: relative; z-index: 1;
+            max-width: 900px; width: 90vw;
+            margin: 110px auto 70px;
+        }
+
+        .page-header { text-align: center; margin-bottom: 54px; animation: fadeIn .6s ease; }
+        .page-header h1 {
+            font-family: var(--font-primary); font-size: clamp(1.4rem, 4vw, 2rem);
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3);
+            letter-spacing: .15em;
+        }
+        .page-header p {
+            font-family: var(--font-secondary); color: #555;
+            font-size: .8rem; letter-spacing: .1em; margin-top: 10px;
+        }
+
+        /* pipeline flow */
+        .pipeline {
+            display: flex; align-items: center; justify-content: center;
+            flex-wrap: wrap; gap: 0;
+            background: var(--card-background);
+            border: 1px solid rgba(255,0,51,0.14);
+            border-radius: 10px; padding: 28px 24px;
+            margin-bottom: 48px;
+            animation: fadeIn .5s ease .1s both;
+        }
+        .pipeline-label {
+            width: 100%; font-family: var(--font-secondary); font-size: .65rem;
+            color: var(--primary-color); letter-spacing: .25em; margin-bottom: 20px;
+            text-align: center; opacity: .7;
+        }
+        .p-node {
+            background: rgba(255,0,51,0.06); border: 1px solid rgba(255,0,51,0.28);
+            border-radius: 6px; padding: 10px 14px; text-align: center;
+            min-width: 88px;
+        }
+        .p-node-tag { font-family: var(--font-secondary); font-size: .6rem; color: #555; letter-spacing: .12em; }
+        .p-node-name { font-family: var(--font-primary); font-size: .62rem; color: #ccc; letter-spacing: .06em; margin-top: 4px; }
+        .p-arrow { color: rgba(255,0,51,0.4); padding: 0 8px; font-size: 1rem; flex-shrink: 0; }
+
+        /* steps */
+        .steps { display: flex; flex-direction: column; }
+        .step {
+            display: grid; grid-template-columns: 72px 1fr;
+            gap: 0 24px;
+            animation: fadeIn .5s ease both;
+        }
+        .step:nth-child(1){animation-delay:.15s} .step:nth-child(2){animation-delay:.25s}
+        .step:nth-child(3){animation-delay:.35s} .step:nth-child(4){animation-delay:.45s}
+        .step:nth-child(5){animation-delay:.55s}
+
+        .step-line { display: flex; flex-direction: column; align-items: center; }
+        .step-num {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 1px solid var(--primary-color);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-primary); font-size: .82rem;
+            color: var(--primary-color);
+            box-shadow: 0 0 12px rgba(255,0,51,0.2), inset 0 0 8px rgba(255,0,51,0.06);
+            background: var(--background-color); flex-shrink: 0; z-index: 1;
+        }
+        .step-connector {
+            flex: 1; width: 1px; min-height: 24px;
+            background: linear-gradient(to bottom, rgba(255,0,51,0.35), rgba(255,0,51,0.04));
+            margin: 4px 0;
+        }
+        .step:last-child .step-connector { display: none; }
+
+        .step-body {
+            background: var(--card-background);
+            border: 1px solid rgba(255,0,51,0.13);
+            border-radius: 10px; padding: 20px 24px;
+            margin-bottom: 22px;
+            transition: border-color .25s, box-shadow .25s;
+        }
+        .step-body:hover {
+            border-color: rgba(255,0,51,0.36);
+            box-shadow: 0 0 20px rgba(255,0,51,0.08);
+        }
+        .step-tag { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .22em; color: rgba(255,0,51,.6); margin-bottom: 5px; }
+        .step-title { font-family: var(--font-primary); font-size: .9rem; color: #ddd; margin-bottom: 10px; letter-spacing: .07em; }
+        .step-desc { font-family: var(--font-secondary); font-size: .78rem; color: #5a5a5a; line-height: 1.85; }
+        .step-code {
+            margin-top: 12px; padding: 11px 14px;
+            background: rgba(0,0,0,0.55); border-left: 2px solid rgba(255,0,51,0.5);
+            border-radius: 0 4px 4px 0;
+            font-family: var(--font-secondary); font-size: .73rem;
+            color: #666; line-height: 1.7;
+        }
+        .hl { color: var(--primary-color); }
+
+        /* pixel visualiser */
+        .pixel-section {
+            margin-top: 48px;
+            animation: fadeIn .5s ease .6s both;
+        }
+        .section-title { font-family: var(--font-primary); font-size: .75rem; color: var(--primary-color); letter-spacing: .2em; margin-bottom: 16px; }
+        .pixel-grid { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+        .pixel {
+            width: 38px; height: 38px; border-radius: 4px;
+            display: flex; align-items: flex-end; justify-content: flex-end;
+            padding: 2px; font-size: 9px; font-family: var(--font-secondary);
+            border: 1px solid transparent; transition: all .3s; cursor: default;
+        }
+        .pixel.mod { border-color: var(--primary-color); box-shadow: 0 0 8px rgba(255,0,51,0.4); }
+        .pixel .b { color: var(--primary-color); font-weight: bold; }
+        .pixel-note { font-family: var(--font-secondary); font-size: .72rem; color: #444; }
+        .pixel-note span { color: var(--primary-color); }
+
+        /* security box */
+        .security-box {
+            margin-top: 48px;
+            background: rgba(255,0,51,0.04); border: 1px solid rgba(255,0,51,0.18);
+            border-radius: 10px; padding: 24px 28px;
+            display: grid; grid-template-columns: 36px 1fr; gap: 14px;
+            animation: fadeIn .5s ease .7s both;
+        }
+        .sec-icon { font-size: 1.4rem; }
+        .sec-title { font-family: var(--font-primary); font-size: .75rem; color: var(--primary-color); letter-spacing: .12em; margin-bottom: 8px; }
+        .sec-text { font-family: var(--font-secondary); font-size: .77rem; color: #555; line-height: 1.85; }
+        .sec-text strong { color: #999; }
+
+        @media(max-width:600px){
+            .nav-bar{padding:12px 20px}
+            .nav-links{display:none}
+            .step{grid-template-columns:52px 1fr; gap:0 14px}
+            .pipeline{flex-direction:column}
+            .p-arrow{transform:rotate(90deg)}
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-scanline"></div>
+    <div id="animated-bg"></div>
+
+    <nav class="nav-bar">
+        <a class="nav-logo" href="index.html">SHADOW FOLD</a>
+        <div class="nav-links">
+            <a href="index.html">ENCODE / DECODE</a>
+            <a href="how-it-works.html" class="active">HOW IT WORKS</a>
+            <a href="dashboard.html">DASHBOARD</a>
+            <a href="about.html">ABOUT</a>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <div class="page-header">
+            <h1>HOW IT WORKS</h1>
+            
+        </div>
+
+        <div class="pipeline">
+            <div class="pipeline-label"></div>
+            <div class="p-node"><div class="p-node-tag">INPUT</div><div class="p-node-name">CARRIER IMAGE</div></div>
+            <div class="p-arrow">&#9658;</div>
+            <div class="p-node"><div class="p-node-tag">READ</div><div class="p-node-name">BYTE EXTRACT</div></div>
+            <div class="p-arrow">&#9658;</div>
+            <div class="p-node"><div class="p-node-tag">PRNG</div><div class="p-node-name">PIXEL SHUFFLE</div></div>
+            <div class="p-arrow">&#9658;</div>
+            <div class="p-node"><div class="p-node-tag">ENCODE</div><div class="p-node-name">LSB INJECT</div></div>
+            <div class="p-arrow">&#9658;</div>
+            <div class="p-node"><div class="p-node-tag">OUTPUT</div><div class="p-node-name">STEGO PNG</div></div>
+        </div>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-line"><div class="step-num">01</div><div class="step-connector"></div></div>
+                <div class="step-body">
+                    <div class="step-tag"></div>
+                    <div class="step-title">CARRIER IMAGE UPLOAD</div>
+                    <div class="step-desc">You provide a cover image — PNG or BMP. This is the "right side up" world. The image is drawn onto an HTML5 Canvas which exposes raw RGBA pixel data as a flat byte array. Every pixel has 4 channels: Red, Green, Blue, Alpha.</div>
+                    <div class="step-code">
+                        <span class="hl">canvas.getImageData()</span> → Uint8Array [R,G,B,A, R,G,B,A, ...]<br>
+                        1920×1080 image = <span class="hl">8,294,400 bytes</span> of raw pixel data
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-line"><div class="step-num">02</div><div class="step-connector"></div></div>
+                <div class="step-body">
+                    <div class="step-tag"></div>
+                    <div class="step-title">SECRET FILE SERIALIZATION</div>
+                    <div class="step-desc">Your secret file — any type — is read as raw bytes. A header is prepended with a magic signature, filename length, filename, and data length. This ensures perfect reconstruction during decode, preserving the original file format and name.</div>
+                    <div class="step-code">
+                        Header: <span class="hl">SHDW</span> (4B) + name_len (4B) + filename + data_len (4B) + raw_bytes<br>
+                        Max payload capacity = <span class="hl">width × height × 3 / 8</span> bytes
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-line"><div class="step-num">03</div><div class="step-connector"></div></div>
+                <div class="step-body">
+                    <div class="step-tag"></div>
+                    <div class="step-title">PASSWORD-SEEDED PRNG SHUFFLE</div>
+                    <div class="step-desc">Your password is hashed using FNV-1a into a 32-bit seed. That seed initialises a Mulberry32 PRNG, which performs a Fisher-Yates shuffle over all pixel indices — producing a unique, deterministic scramble only reproducible with the exact password. Even if an attacker knows LSB was used, without the password they cannot determine which pixels to read.</div>
+                    <div class="step-code">
+                        <span class="hl">FNV-1a(password)</span> → 32-bit seed → <span class="hl">Mulberry32(seed)</span><br>
+                        Fisher-Yates over <span class="hl">N</span> pixels → unique pixel order[]
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-line"><div class="step-num">04</div><div class="step-connector"></div></div>
+                <div class="step-body">
+                    <div class="step-tag"></div>
+                    <div class="step-title">LSB STEGANOGRAPHY ENCODING</div>
+                    <div class="step-desc">Each bit of the payload is written into the Least Significant Bit of an R, G, or B channel of a pixel selected by the PRNG order. Changing only the LSB shifts a colour value by at most ±1 — completely imperceptible to the human eye. The Alpha channel is never modified.</div>
+                    <div class="step-code">
+                        pixel[i] = <span class="hl">(pixel[i] &amp; 0xFE) | bit</span><br>
+                        255 → 254 or 255 &nbsp;·&nbsp; visual change: <span class="hl">&lt; 0.4%</span> per channel
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-line"><div class="step-num">05</div><div class="step-connector"></div></div>
+                <div class="step-body">
+                    <div class="step-tag"></div>
+                    <div class="step-title">LOSSLESS PNG EXPORT</div>
+                    <div class="step-desc">The modified pixel array is written back to the canvas and exported as PNG — a lossless format that preserves every pixel exactly. JPEG must never be used: its lossy compression would corrupt the LSB bits and destroy the hidden data entirely.</div>
+                    <div class="step-code">
+                        <span class="hl">canvas.toBlob('image/png')</span> → lossless stego image<br>
+                        Visual difference from original: <span class="hl">undetectable</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pixel-section">
+            <div class="section-title"></div>
+            <div class="pixel-grid" id="pixel-grid"></div>
+            <div class="pixel-note">Glowing pixels have been <span>modified by LSB encoding</span>. The corner bit shows what was injected.</div>
+        </div>
+
+        <div class="security-box">
+            <div class="sec-icon">🔐</div>
+            <div>
+                <div class="sec-title">SECURITY MODEL</div>
+                <div class="sec-text">
+                    Shadow Fold provides <strong>steganographic security</strong>, not cryptographic encryption. The password controls <em>which pixels</em> carry the data via PRNG — without it, the data is unreadable even if its presence is suspected. For maximum security, encrypt your file before hiding it. A future AES-256 layer is planned.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('pixel-grid');
+        const palette = [
+            [210,75,75],[170,65,65],[195,90,82],[155,60,60],[205,85,78],
+            [75,75,175],[85,95,195],[65,75,155],[80,90,188],[72,82,165],
+            [75,172,92],[85,182,102],[70,162,88],[82,178,98],[76,168,94],
+            [175,155,70],[188,168,82],[165,145,66],[180,160,78],[170,150,72],
+        ];
+        const bits = [1,0,1,1,0,1,0,1,1,0,0,1,0,1,1,0,1,0,1,1];
+        palette.forEach((c, i) => {
+            const px = document.createElement('div');
+            px.className = 'pixel' + (i < bits.length ? ' mod' : '');
+            px.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+            if (i < bits.length) px.innerHTML = `<span class="b">${bits[i]}</span>`;
+            grid.appendChild(px);
+        });
+    </script>
+</body>
+</html>

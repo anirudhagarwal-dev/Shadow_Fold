@@ -278,3 +278,60 @@ function showLoader(text) {
 function hideLoader() {
     document.getElementById('loader').classList.remove('show');
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// ADD THESE LINES TO script.js  — dashboard logging integration
+// Drop them into handleEncode() and handleDecode() as shown below
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ── In handleEncode() ── paste after the successful canvas.toDataURL download:
+
+    // Log to dashboard
+    if (window.SFLog) window.SFLog.add({
+        type: 'encode',
+        file: secretInput.files[0].name,
+        ext: secretInput.files[0].name.split('.').pop(),
+        size: secretBytes.length,
+        carrier: imageInput.files[0].name,
+        capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+        status: 'ok'
+    });
+
+
+// ── In handleEncode() ── paste in the "not enough space" failure branch:
+
+    if (window.SFLog) window.SFLog.add({
+        type: 'encode',
+        file: secretInput.files[0].name,
+        ext: secretInput.files[0].name.split('.').pop(),
+        size: secretBytes.length,
+        carrier: imageInput.files[0].name,
+        capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+        status: 'fail'
+    });
+
+
+// ── In handleDecode() ── paste after the successful blob download:
+
+    if (window.SFLog) window.SFLog.add({
+        type: 'decode',
+        file: imageInput.files[0].name,
+        ext: result.extension,
+        size: 0,
+        carrier: imageInput.files[0].name,
+        capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+        status: 'ok'
+    });
+
+
+// ── In handleDecode() ── paste in the "wrong password" failure branch:
+
+    if (window.SFLog) window.SFLog.add({
+        type: 'decode',
+        file: imageInput.files[0].name,
+        ext: '',
+        size: 0,
+        carrier: imageInput.files[0].name,
+        capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+        status: 'fail'
+    });

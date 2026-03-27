@@ -395,3 +395,45 @@ h2 {
         visibility: hidden;
     }
 }
+.nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 40px;
+    background: rgba(13,13,13,0.94);
+    border-bottom: 1px solid rgba(255,0,51,0.18);
+    backdrop-filter: blur(8px);
+}
+
+.nav-logo {
+    font-family: var(--font-primary);
+    font-size: .88rem;
+    color: var(--primary-color);
+    letter-spacing: .2em;
+    text-decoration: none;
+    text-shadow: 0 0 10px var(--primary-color);
+}
+
+.nav-links {
+    display: flex;
+    gap: 28px;
+}
+
+.nav-links a {
+    font-family: var(--font-secondary);
+    font-size: .72rem;
+    color: #666;
+    text-decoration: none;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    color: var(--primary-color);
+}
