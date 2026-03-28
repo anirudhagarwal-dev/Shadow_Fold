@@ -165,11 +165,11 @@
         <a class="nav-logo" href="index.html">SHADOW FOLD</a>
         <div class="nav-links">
             <a href="index.html">ENCODE / DECODE</a>
-            <a href="how-it-works.html">HOW IT WORKS</a>
             <a href="steganalysis.html">STEGANALYSIS</a>
             <a href="benchmark.html">BENCHMARK</a>
             <a href="Dashboard.html" class="active">DASHBOARD</a>
             <a href="about.html">ABOUT</a>
+            <a href="how-it-works.html">HOW IT WORKS</a>
         </div>
     </nav>
 
@@ -329,9 +329,13 @@
 
             slice.forEach(r => {
                 const pct = r.capacity ? Math.round((r.size||0) / r.capacity * 100) : 0;
+                const isPack = r.ext === 'sfpack';
+                const fileLabel = isPack && r.fileCount ? `[${r.fileCount} FILES] ${r.file}` : r.file;
+                const fileStyle = isPack ? 'color:#ff9900; font-weight:bold;' : '';
+
                 html += `<tr>
                     <td><span class="td-type ${r.type}">${r.type.toUpperCase()}</span></td>
-                    <td class="td-file" title="${r.file}">${r.file}</td>
+                    <td class="td-file" title="${r.file}" style="${fileStyle}">${fileLabel}</td>
                     <td style="color:#555">${r.ext ? r.ext.toUpperCase() : '—'}</td>
                     <td class="td-size">${fmtBytes(r.size)}</td>
                     <td>

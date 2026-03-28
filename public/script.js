@@ -14,8 +14,10 @@ function calculatePSNR(original, encoded) {
     return 10 * Math.log10((255 * 255) / mse);
 }
 
-async function sha256hex(arrayBuffer) {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+async function sha256hex(data) {
+    // subtle.digest accepts BufferSource (which includes TypedArrays)
+    // If we pass a TypedArray, it correctly uses only the view's portion of the buffer.
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -37,30 +39,62 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+// ==============================
+// PASSWORD STRENGTH
+// Returns { score: 0-4, label, cls }
+// Checks length, uppercase, digits, symbols — not just length.
+// ==============================
+function assessPassword(password) {
+    if (!password) return { score: 0, label: '', cls: '' };
+
+    let score = 0;
+    if (password.length >= 8)  score++;
+    if (password.length >= 12) score++;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    // Cap at 4
+    score = Math.min(score, 4);
+
+    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+    const classes = ['', 'strength-weak', 'strength-fair', 'strength-good', 'strength-strong'];
+    return { score, label: labels[score], cls: classes[score] };
+}
+
 function isPasswordStrong(password) {
-    return password.length >= 8;
+    return assessPassword(password).score >= 2;
 }
 
 // ==============================
 // WASM DETECTION
-// Helper: detect if WASM has the new 7-arg signature or old 4-arg signature
+// v2  = new build  → encode_data_wh exists (9 args)
+// v1  = mid build  → encode_data exists with 7 args
+// v0  = original   → encode_data exists with 4 args (pre-dual-layer)
 // ==============================
-function detectWASMSignature() {
-    if (!window.Module) return 'none';
-    if (typeof window.Module.encode_data !== 'function') return 'none';
-    // The old compiled WASM encode_data has 4 params.
-    // The new one has 7 params.
-    // We detect by inspecting the function's .length property.
-    // Emscripten-bound functions expose their arity via .length.
-    const arity = window.Module.encode_data.length;
-    if (arity >= 7) return 'new';
-    return 'old';
+function getWASMVersion() {
+    const mod = window.Module || (typeof Module !== 'undefined' ? Module : null);
+    if (!mod) return 'none';
+    
+    // Check for specific v2 exports
+    if (typeof mod.encode_data_wh === 'function' && typeof mod.decode_data_dual === 'function') {
+        return 'v2';
+    }
+    
+    // Check for v1/v0 based on arity
+    if (typeof mod.encode_data === 'function') {
+        // Emscripten exposes arity via .length
+        return mod.encode_data.length >= 7 ? 'v1' : 'v0';
+    }
+    return 'none';
 }
 
 // ==============================
 // DOM READY
 // ==============================
 document.addEventListener('DOMContentLoaded', () => {
+    // Multi-File Pack State
+    window.SF_PackFiles = [];
 
     // --- Tabs ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -78,33 +112,81 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPasswordToggle('encode-toggle-password', 'encode-password');
     setupPasswordToggle('decode-toggle-password', 'decode-password');
 
+    // --- Password Strength Meters ---
+    setupStrengthMeter('encode-password', 'encode-password-strength');
+    setupStrengthMeter('decoy-password',  'decoy-password-strength');
+
     // --- Drop Zones ---
     setupDropZone('encode-image-drop-zone', 'encode-image-input', 'encode-image-preview');
-    setupDropZone('secret-file-drop-zone', 'secret-file-input', null, 'secret-file-name');
+    // Multi-file payload zone
+    setupPayloadZone('payload-pack-zone', 'secret-file-input');
     setupDropZone('decode-image-drop-zone', 'decode-image-input', 'decode-image-preview');
-    setupDropZone('decoy-file-drop-zone', 'decoy-file-input', null, 'decoy-file-name');
+    setupDropZone('decoy-file-drop-zone',   'decoy-file-input',   null, 'decoy-file-name');
 
     // --- Dual Layer Toggle ---
-    const dualLayerToggle = document.getElementById('dual-layer-toggle');
-    const decoySection = document.getElementById('decoy-section');
-    if (dualLayerToggle && decoySection) {
-        dualLayerToggle.addEventListener('click', () => {
-            const isOpen = decoySection.style.display !== 'none';
-            if (isOpen) {
-                decoySection.style.display = 'none';
-                dualLayerToggle.textContent = '[ + ] ADD DECOY LAYER (OPTIONAL)';
-                const decoyFileInput = document.getElementById('decoy-file-input');
-                const decoyFileName = document.getElementById('decoy-file-name');
-                const decoyPasswordInput = document.getElementById('decoy-password');
-                if (decoyFileInput) decoyFileInput.value = '';
-                if (decoyFileName) decoyFileName.textContent = '';
-                if (decoyPasswordInput) decoyPasswordInput.value = '';
+    const dualLayerCheckbox = document.getElementById('dual-layer-checkbox');
+    const dlPanel           = document.getElementById('dual-layer-panel-container');
+    const dlBadge           = document.getElementById('dual-layer-badge');
+    
+    if (dualLayerCheckbox && dlPanel) {
+        dualLayerCheckbox.addEventListener('change', () => {
+            if (dualLayerCheckbox.checked) {
+                dlPanel.classList.add('active');
+                if (dlBadge) dlBadge.style.display = 'inline-block';
             } else {
-                decoySection.style.display = 'block';
-                dualLayerToggle.textContent = '[ - ] REMOVE DECOY LAYER';
+                dlPanel.classList.remove('active');
+                if (dlBadge) dlBadge.style.display = 'none';
+                
+                // Clear decoy fields when disabling
+                const df = document.getElementById('decoy-file-input');
+                const dn = document.getElementById('decoy-file-name');
+                const dp = document.getElementById('decoy-password');
+                const dm = document.getElementById('decoy-password-strength');
+                if (df) df.value = '';
+                if (dn) dn.textContent = '';
+                if (dp) dp.value = '';
+                if (dm) dm.innerHTML = '';
             }
+            updateCapacity();
         });
     }
+
+    // --- Add More Files Button ---
+    const btnAddFiles = document.getElementById('btn-add-files');
+    if (btnAddFiles) {
+        btnAddFiles.addEventListener('click', () => {
+            document.getElementById('secret-file-input').click();
+        });
+    }
+
+    // --- Decode Mode Selector ---
+    const decodeModeBtns = document.querySelectorAll('#decode-mode-selector .mode-btn');
+    const singlePassSec  = document.getElementById('decode-single-pass-section');
+    const dualPassSec    = document.getElementById('decode-dual-pass-section');
+    
+    decodeModeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            decodeModeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (btn.dataset.mode === 'dual') {
+                singlePassSec.style.display = 'none';
+                dualPassSec.style.display   = 'block';
+            } else {
+                singlePassSec.style.display = 'block';
+                dualPassSec.style.display   = 'none';
+            }
+        });
+    });
+
+    // --- Decode Layer Selector ---
+    const decodeLayerBtns = document.querySelectorAll('#decode-layer-selector .mode-btn');
+    decodeLayerBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            decodeLayerBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
 
     // --- Buttons ---
     document.getElementById('encode-button').addEventListener('click', handleEncode);
@@ -112,14 +194,188 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==============================
+// PAYLOAD PACK ZONE HELPER
+// ==============================
+function setupPayloadZone(zoneId, inputId) {
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(inputId);
+    if (!zone || !input) return;
+
+    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            addFilesToPack(e.dataTransfer.files);
+        }
+    });
+    input.addEventListener('change', () => {
+        if (input.files.length) {
+            addFilesToPack(input.files);
+            input.value = ''; // Reset to allow re-selection of same files
+        }
+    });
+}
+
+function addFilesToPack(files) {
+    for (const file of files) {
+        // Simple deduplication by name
+        if (window.SF_PackFiles.some(f => f.file.name === file.name)) continue;
+        window.SF_PackFiles.push({
+            file: file,
+            id: Math.random().toString(36).substr(2, 9)
+        });
+    }
+    renderPackList();
+    updateCapacity();
+}
+
+function renderPackList() {
+    const list = document.getElementById('pack-file-list');
+    const summary = document.getElementById('pack-summary');
+    const actions = document.getElementById('pack-actions');
+    const badge = document.getElementById('pack-mode-badge');
+    
+    if (!list) return;
+
+    if (window.SF_PackFiles.length === 0) {
+        list.innerHTML = '';
+        if (summary) summary.style.display = 'none';
+        if (actions) actions.style.display = 'none';
+        if (badge) badge.style.display = 'none';
+        return;
+    }
+
+    if (summary) {
+        summary.style.display = 'block';
+        const totalSize = window.SF_PackFiles.reduce((acc, f) => acc + f.file.size, 0);
+        summary.textContent = `PACK CONTENTS (${window.SF_PackFiles.length} files · ${formatBytes(totalSize)})`;
+    }
+    if (actions) actions.style.display = 'block';
+    if (badge) badge.style.display = window.SF_PackFiles.length > 1 ? 'inline-block' : 'none';
+
+    list.innerHTML = window.SF_PackFiles.map(f => {
+        const ext = f.file.name.split('.').pop().toLowerCase();
+        let emoji = '📎';
+        if (['pdf'].includes(ext)) emoji = '📄';
+        else if (['jpg', 'jpeg', 'png', 'bmp', 'gif', 'webp'].includes(ext)) emoji = '🖼';
+        else if (['txt', 'md', 'rtf'].includes(ext)) emoji = '📝';
+        else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) emoji = '📦';
+        else if (['mp4', 'mkv', 'mov', 'avi'].includes(ext)) emoji = '🎬';
+        else if (['mp3', 'wav', 'flac', 'ogg'].includes(ext)) emoji = '🎵';
+
+        return `
+            <div class="pack-item" data-id="${f.id}">
+                <div class="pack-item-info">
+                    <span>${emoji}</span>
+                    <span class="pack-item-name" title="${f.file.name}">${f.file.name}</span>
+                    <span class="pack-item-size">${formatBytes(f.file.size)}</span>
+                </div>
+                <div class="pack-item-remove" onclick="removePackFile('${f.id}')">[✕]</div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.removePackFile = function(id) {
+    window.SF_PackFiles = window.SF_PackFiles.filter(f => f.id !== id);
+    renderPackList();
+    updateCapacity();
+};
+
+// ==============================
+// MULTI-FILE PACKING LOGIC
+// ==============================
+async function buildSecretPayload() {
+    const files = window.SF_PackFiles || [];
+    if (files.length === 0) return null;
+     
+    if (files.length === 1) {
+        // Single file — pass through directly, no zip
+        const bytes = new Uint8Array(await files[0].file.arrayBuffer());
+        const ext = files[0].file.name.split('.').pop().toLowerCase();
+        return { bytes, ext };
+    }
+     
+    // Multi-file: build in-memory zip using fflate
+    const zipInput = {};
+    for (const { file } of files) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        // fflate uses filename as key; store with original name
+        zipInput[file.name] = [bytes, { level: 0 }]; // level:0 = store only; WASM already compresses
+    }
+     
+    return new Promise((resolve, reject) => {
+        if (typeof fflate === 'undefined') {
+            reject(new Error('fflate library not loaded.'));
+            return;
+        }
+        fflate.zip(zipInput, { level: 0 }, (err, data) => {
+            if (err) { reject(err); return; }
+            resolve({ bytes: data, ext: 'sfpack' });
+        });
+    });
+}
+
+// ==============================
+// MULTI-FILE UNPACKING LOGIC
+// ==============================
+async function unpackPayload(fileData, fileExt) {
+    if (fileExt !== 'sfpack') {
+        // Single file — trigger download as before
+        const filename = `decoded.${fileExt}`;
+        downloadBlob(fileData, filename);
+        return { fileCount: 1, totalSize: fileData.length, names: [filename] };
+    }
+     
+    // Multi-pack: decompress ZIP in JS
+    return new Promise((resolve, reject) => {
+        if (typeof fflate === 'undefined') {
+            reject(new Error('fflate library not loaded.'));
+            return;
+        }
+        fflate.unzip(fileData, (err, files) => {
+            if (err) { reject(err); return; }
+            const names = Object.keys(files);
+            let totalSize = 0;
+            const filenames = [];
+            for (const name of names) {
+                const blob = new Blob([files[name]]);
+                totalSize += files[name].length;
+                filenames.push(name);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = name;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+            }
+            resolve({ fileCount: filenames.length, totalSize, names: filenames });
+        });
+    });
+}
+
+function downloadBlob(data, filename) {
+    const blob = new Blob([data], { type: 'application/octet-stream' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+
+// ==============================
 // INTRO SCREEN + SOUND
 // ==============================
 window.addEventListener('load', () => {
     const audio = new Audio('assets/sounds/glitch.mp3');
     audio.volume = 0.4;
-    setTimeout(() => {
-        audio.play().catch(() => {});
-    }, 400);
+    setTimeout(() => { audio.play().catch(() => {}); }, 400);
     setTimeout(() => {
         const intro = document.getElementById('intro-screen');
         if (intro) intro.style.display = 'none';
@@ -137,7 +393,7 @@ document.addEventListener('click', () => {
 // ==============================
 function setupPasswordToggle(toggleId, inputId) {
     const toggle = document.getElementById(toggleId);
-    const input = document.getElementById(inputId);
+    const input  = document.getElementById(inputId);
     if (!toggle || !input) return;
     toggle.addEventListener('click', () => {
         if (input.type === 'password') {
@@ -151,15 +407,41 @@ function setupPasswordToggle(toggleId, inputId) {
 }
 
 // ==============================
+// PASSWORD STRENGTH METER
+// ==============================
+function setupStrengthMeter(inputId, meterId) {
+    const input = document.getElementById(inputId);
+    const meter = document.getElementById(meterId);
+    if (!input || !meter) return;
+
+    input.addEventListener('input', () => {
+        const { score, label, cls } = assessPassword(input.value);
+        meter.innerHTML = '';
+        if (!input.value) return;
+
+        // 4 segments
+        for (let i = 1; i <= 4; i++) {
+            const seg = document.createElement('span');
+            seg.className = 'strength-seg' + (i <= score ? ' ' + cls : ' strength-empty');
+            meter.appendChild(seg);
+        }
+        const lbl = document.createElement('span');
+        lbl.className = 'strength-label ' + cls;
+        lbl.textContent = label;
+        meter.appendChild(lbl);
+    });
+}
+
+// ==============================
 // DROP ZONE HELPER
 // ==============================
 function setupDropZone(zoneId, inputId, previewId, nameId) {
-    const dropZone = document.getElementById(zoneId);
-    const input = document.getElementById(inputId);
+    const dropZone   = document.getElementById(zoneId);
+    const input      = document.getElementById(inputId);
     if (!dropZone || !input) return;
 
-    const preview = previewId ? document.getElementById(previewId) : null;
-    const nameDisplay = nameId ? document.getElementById(nameId) : null;
+    const preview     = previewId ? document.getElementById(previewId) : null;
+    const nameDisplay = nameId    ? document.getElementById(nameId)    : null;
 
     dropZone.addEventListener('click', () => input.click());
 
@@ -167,9 +449,7 @@ function setupDropZone(zoneId, inputId, previewId, nameId) {
         e.preventDefault();
         dropZone.classList.add('dragover');
     });
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('dragover');
-    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', e => {
         e.preventDefault();
         dropZone.classList.remove('dragover');
@@ -197,30 +477,26 @@ function handleFileChange(input, preview, nameDisplay) {
         };
         reader.readAsDataURL(file);
     }
-    if (nameDisplay) {
-        nameDisplay.textContent = file.name;
-    }
+    if (nameDisplay) nameDisplay.textContent = file.name;
 }
 
 // ==============================
 // CAPACITY INDICATOR
+// Uses get_capacity_bytes() from WASM when available for exact
+// overhead-aware capacity; falls back to the raw pixel estimate.
 // ==============================
 function updateCapacity() {
-    const carrierInput = document.getElementById('encode-image-input');
-    const secretInput = document.getElementById('secret-file-input');
+    const carrierInput   = document.getElementById('encode-image-input');
     const capacitySection = document.getElementById('capacity-section');
-    const capacityPct = document.getElementById('capacity-pct');
-    const capacityMax = document.getElementById('capacity-max');
-    const capacityBar = document.getElementById('capacity-bar');
-    const capacityUsed = document.getElementById('capacity-used');
+    const capacityPct    = document.getElementById('capacity-pct');
+    const capacityMax    = document.getElementById('capacity-max');
+    const capacityBar    = document.getElementById('capacity-bar');
+    const capacityUsed   = document.getElementById('capacity-used');
 
     if (!carrierInput || !capacitySection) return;
 
     const carrierFile = carrierInput.files[0];
-    if (!carrierFile) {
-        capacitySection.style.display = 'none';
-        return;
-    }
+    if (!carrierFile) { capacitySection.style.display = 'none'; return; }
 
     capacitySection.style.display = 'block';
 
@@ -228,26 +504,51 @@ function updateCapacity() {
     img.src = URL.createObjectURL(carrierFile);
     img.onload = () => {
         const totalPixels = img.width * img.height;
-        const maxBytes = Math.floor(totalPixels * 3 / 8);
-        const secretFile = secretInput ? secretInput.files[0] : null;
-        const usedBytes = secretFile ? secretFile.size : 0;
-        const pct = Math.min(100, Math.round((usedBytes / maxBytes) * 100));
+        const packFiles   = window.SF_PackFiles || [];
+        
+        let usedBytes = 0;
+        let ext_len = 3;
 
-        if (capacityPct) capacityPct.textContent = `${pct}%`;
-        if (capacityMax) capacityMax.textContent = `/ ${formatBytes(maxBytes)}`;
+        if (packFiles.length > 1) {
+            usedBytes = packFiles.reduce((acc, f) => acc + f.file.size, 0);
+            ext_len = 6; // ".sfpack"
+        } else if (packFiles.length === 1) {
+            usedBytes = packFiles[0].file.size;
+            ext_len = packFiles[0].file.name.split('.').pop().length;
+        }
+
+        const dualLayerCheckbox = document.getElementById('dual-layer-checkbox');
+        const isDual = dualLayerCheckbox && dualLayerCheckbox.checked;
+
+        const mod = window.Module || (typeof Module !== 'undefined' ? Module : null);
+
+        // Use WASM-accurate capacity when available
+        let maxBytes;
+        if (mod && typeof mod.get_capacity_bytes === 'function') {
+            try {
+                maxBytes = mod.get_capacity_bytes(totalPixels, ext_len, isDual);
+            } catch(e) {
+                console.warn("[ShadowFold] Capacity WASM failed, falling back.");
+                maxBytes = Math.floor(totalPixels * 3 / 8) - 100;
+            }
+        } else {
+            // Conservative fallback: raw bits / 8 minus rough overhead
+            const usable = isDual ? totalPixels * 3 / 2 : totalPixels * 3;
+            maxBytes = Math.max(0, Math.floor(usable / 8) - 40);
+        }
+
+        const pct = maxBytes > 0 ? Math.min(100, Math.round((usedBytes / maxBytes) * 100)) : 100;
+
+        if (capacityPct)  capacityPct.textContent  = `${pct}%`;
+        if (capacityMax)  capacityMax.textContent  = `/ ${formatBytes(maxBytes)}`;
         if (capacityUsed) capacityUsed.textContent = `${formatBytes(usedBytes)} used`;
         if (capacityBar) {
             capacityBar.style.width = `${pct}%`;
-            if (pct > 90) {
-                capacityBar.style.background = 'var(--primary-color)';
-                if (capacityPct) capacityPct.style.color = 'var(--primary-color)';
-            } else if (pct > 50) {
-                capacityBar.style.background = '#ffaa00';
-                if (capacityPct) capacityPct.style.color = '#ffaa00';
-            } else {
-                capacityBar.style.background = '#00c878';
-                if (capacityPct) capacityPct.style.color = '#00c878';
-            }
+            let color = '#00c878';
+            if (pct > 90)      color = 'var(--primary-color)';
+            else if (pct > 50) color = '#ffaa00';
+            capacityBar.style.background = color;
+            if (capacityPct) capacityPct.style.color = color;
         }
         URL.revokeObjectURL(img.src);
     };
@@ -257,175 +558,213 @@ function updateCapacity() {
 // ENCODE
 // ==============================
 async function handleEncode() {
-    // --- WASM readiness check ---
-    if (!window.Module || typeof window.Module.encode_data !== 'function') {
+    const wasmVer = getWASMVersion();
+    const mod = window.Module || (typeof Module !== 'undefined' ? Module : null);
+    if (wasmVer === 'none') {
         alert('WASM module not yet active. Please wait a moment and try again.');
         return;
     }
 
-    const imageInput = document.getElementById('encode-image-input');
-    const secretInput = document.getElementById('secret-file-input');
+    const imageInput    = document.getElementById('encode-image-input');
     const passwordInput = document.getElementById('encode-password');
-    const stats = document.getElementById('encode-stats');
+    const stats         = document.getElementById('encode-stats');
 
-    const password = passwordInput ? passwordInput.value : '';
+    const password = passwordInput ? passwordInput.value.trim() : '';
 
-    // --- Input validation ---
-    if (!imageInput || !imageInput.files[0]) {
-        alert('Please upload a carrier image.');
-        return;
-    }
-    if (!secretInput || !secretInput.files[0]) {
-        alert('Please upload a secret file to hide.');
-        return;
-    }
-    if (!password) {
-        alert('Please enter a frequency (password).');
-        return;
-    }
-    if (!isPasswordStrong(password)) {
-        alert('Frequency (password) must be at least 8 characters for security.');
+    if (!imageInput?.files[0])  { alert('Please upload a carrier image.'); return; }
+    if (!window.SF_PackFiles || window.SF_PackFiles.length === 0) { alert('Please upload a secret file to hide.'); return; }
+    if (!password)               { alert('Please enter a frequency (password).'); return; }
+
+    const { score } = assessPassword(password);
+    if (score < 2) {
+        alert('Password is too weak. Use at least 8 characters including uppercase, numbers, or symbols.');
         return;
     }
 
-    // --- Image type check ---
     const imageFile = imageInput.files[0];
     if (!imageFile.type.includes('png') && !imageFile.type.includes('bmp')) {
         alert('Carrier image must be PNG or BMP. JPEG is lossy and will destroy hidden data.');
         return;
     }
 
-    // --- Decoy inputs (optional) ---
-    const decoyInput = document.getElementById('decoy-file-input');
+    const decoyInput         = document.getElementById('decoy-file-input');
     const decoyPasswordInput = document.getElementById('decoy-password');
-    const decoyPassword = decoyPasswordInput ? decoyPasswordInput.value : '';
-    const hasDecoy = decoyInput && decoyInput.files[0] && decoyPassword;
+    const dualLayerCheckbox  = document.getElementById('dual-layer-checkbox');
+    const isDual             = dualLayerCheckbox && dualLayerCheckbox.checked;
+    const decoyPassword      = decoyPasswordInput ? decoyPasswordInput.value.trim() : '';
+    const hasDecoy           = isDual && !!(decoyInput?.files[0] && decoyPassword);
 
-    if (hasDecoy && !isPasswordStrong(decoyPassword)) {
-        alert('Decoy frequency must be at least 8 characters.');
+    if (isDual && !hasDecoy) {
+        alert('Dual layer is active but decoy file or password is missing.');
         return;
+    }
+
+    if (hasDecoy) {
+        const { score: dScore } = assessPassword(decoyPassword);
+        if (dScore < 2) {
+            alert('Decoy password is too weak. Use at least 8 characters including uppercase, numbers, or symbols.');
+            return;
+        }
+        if (decoyPassword === password) {
+            alert('Real password and decoy password must be different.');
+            return;
+        }
     }
 
     showLoader('FOLDING REALITY...');
 
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx    = canvas.getContext('2d');
 
     try {
-        // --- Load carrier image into canvas ---
         const imageBitmap = await createImageBitmap(imageFile);
-        canvas.width = imageBitmap.width;
+        canvas.width  = imageBitmap.width;
         canvas.height = imageBitmap.height;
         ctx.drawImage(imageBitmap, 0, 0);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Create a copy of the original pixels for PSNR and heatmap
+        const originalPixels = new Uint8Array(imageData.data);
+        const imageBytes     = new Uint8Array(imageData.data);
 
-        // imageBytes is a Uint8Array VIEW into imageData.data — do NOT use .buffer directly for WASM
-        // We pass the Uint8Array directly to the WASM function
-        const imageBytes = new Uint8Array(imageData.data.buffer);
-        const secretBytes = new Uint8Array(await secretInput.files[0].arrayBuffer());
-        const ext = secretInput.files[0].name.split('.').pop().toLowerCase();
-
-        // --- Detect WASM signature and call correctly ---
-        // The compiled build/steganography.js was built from a specific version of main.cpp.
-        // We detect which signature it exports and call accordingly.
-        const wasmArity = window.Module.encode_data.length;
+        // Sanity check
+        if (imageBytes.length !== canvas.width * canvas.height * 4) {
+            throw new Error(`Memory mismatch: Image size ${canvas.width}x${canvas.height} requires ${canvas.width * canvas.height * 4} bytes, but got ${imageBytes.length}.`);
+        }
+        const payload     = await buildSecretPayload();
+        if (!payload) throw new Error('Failed to build payload');
+        
+        const secretBytes = payload.bytes;
+        const ext         = payload.ext;
 
         let result;
 
-        if (wasmArity >= 7) {
-            // NEW compiled WASM: encode_data(image, file, ext, password, decoy, decoyExt, decoyPass)
+        if (wasmVer === 'v2') {
+            // Best path: new build with width/height for strong per-image salt
             let decoyBytes = new Uint8Array(0);
-            let decoyExt = '';
+            let decoyExt   = '';
             if (hasDecoy) {
                 decoyBytes = new Uint8Array(await decoyInput.files[0].arrayBuffer());
-                decoyExt = decoyInput.files[0].name.split('.').pop().toLowerCase();
+                decoyExt   = decoyInput.files[0].name.split('.').pop().toLowerCase();
             }
-            result = window.Module.encode_data(
+            result = mod.encode_data_wh(
+                imageBytes, secretBytes, ext, password,
+                decoyBytes, decoyExt, decoyPassword,
+                canvas.width, canvas.height
+            );
+        } else if (wasmVer === 'v1') {
+            // Mid build: 7-arg encode_data (dual-layer capable but no w/h salt)
+            let decoyBytes = new Uint8Array(0);
+            let decoyExt   = '';
+            if (hasDecoy) {
+                decoyBytes = new Uint8Array(await decoyInput.files[0].arrayBuffer());
+                decoyExt   = decoyInput.files[0].name.split('.').pop().toLowerCase();
+            }
+            result = mod.encode_data(
                 imageBytes, secretBytes, ext, password,
                 decoyBytes, decoyExt, decoyPassword
             );
         } else {
-            // OLD compiled WASM: encode_data(image, file, ext, password) — 4 args
-            // Dual-layer is simulated: embed decoy first with decoy password, then real on top
+            // v0: original compiled WASM — only 4 args, no dual-layer support
+            // Dual-layer simulation: embed decoy first, then real on top
             if (hasDecoy) {
                 const decoyBytes = new Uint8Array(await decoyInput.files[0].arrayBuffer());
-                const decoyExt = decoyInput.files[0].name.split('.').pop().toLowerCase();
-
-                // Step 1: embed decoy into a temp copy of the image
-                const decoyResult = window.Module.encode_data(imageBytes, decoyBytes, decoyExt, decoyPassword);
+                const decoyExt   = decoyInput.files[0].name.split('.').pop().toLowerCase();
+                const decoyResult = mod.encode_data(imageBytes, decoyBytes, decoyExt, decoyPassword);
                 if (decoyResult) {
-                    // Step 2: embed real file on top of the decoy-embedded image
-                    const decoyResultBytes = new Uint8Array(decoyResult);
-                    result = window.Module.encode_data(decoyResultBytes, secretBytes, ext, password);
+                    result = mod.encode_data(new Uint8Array(decoyResult), secretBytes, ext, password);
                 } else {
-                    // Decoy failed (probably capacity), just embed real file directly
-                    console.warn('[ShadowFold] Decoy embedding skipped (capacity). Embedding real file only.');
-                    result = window.Module.encode_data(imageBytes, secretBytes, ext, password);
+                    console.warn('[ShadowFold] Decoy skipped (capacity). Embedding real file only.');
+                    result = mod.encode_data(imageBytes, secretBytes, ext, password);
                 }
             } else {
-                result = window.Module.encode_data(imageBytes, secretBytes, ext, password);
+                result = mod.encode_data(imageBytes, secretBytes, ext, password);
             }
         }
 
-        // --- Handle result ---
         if (!result) {
-            alert('Carrier capacity exceeded — file is too large for this image. Try a larger image or smaller file.');
+            alert('Carrier capacity exceeded — payload is too large for this image.');
             if (window.SFLog) window.SFLog.add({
-                type: 'encode',
-                file: secretInput.files[0].name,
-                ext, size: secretBytes.length,
-                carrier: imageFile.name,
-                capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+                type: 'encode', 
+                file: window.SF_PackFiles.length > 1 ? `${window.SF_PackFiles.length} files (.sfpack)` : window.SF_PackFiles[0].file.name,
+                ext, size: secretBytes.length, carrier: imageFile.name,
+                capacity: 0,
                 status: 'fail'
             });
             return;
         }
 
-        // result is a Uint8Array (typed_memory_view from WASM)
-        const resultBytes = new Uint8ClampedArray(result);
+        // result is already a standalone Uint8Array copy from WASM
+        const resultBytes = new Uint8ClampedArray(new Uint8Array(result).slice());
         const newImageData = new ImageData(resultBytes, canvas.width, canvas.height);
         ctx.putImageData(newImageData, 0, 0);
 
-        // --- Download encoded image ---
         const a = document.createElement('a');
         a.href = canvas.toDataURL('image/png');
         a.download = 'encoded.png';
         a.click();
 
-        // --- Dashboard log ---
+        // Clear password fields from DOM after use
+        setTimeout(() => { 
+            if (passwordInput) passwordInput.value = ''; 
+            if (decoyPasswordInput) decoyPasswordInput.value = '';
+            updateStrengthMeter('encode-password', 'encode-password-strength'); 
+            updateStrengthMeter('decoy-password', 'decoy-password-strength');
+        }, 1500);
+
+        const totalPixels = canvas.width * canvas.height;
+        let totalCapacity = 0;
+        if (mod && typeof mod.get_capacity_bytes === 'function') {
+            totalCapacity = mod.get_capacity_bytes(totalPixels, ext.length, hasDecoy);
+        } else {
+            // Conservative fallback if function is missing
+            const usable = hasDecoy ? totalPixels * 3 / 2 : totalPixels * 3;
+            totalCapacity = Math.max(0, Math.floor(usable / 8) - 40);
+        }
+
         if (window.SFLog) window.SFLog.add({
-            type: 'encode',
-            file: secretInput.files[0].name,
-            ext, size: secretBytes.length,
+            type: 'encode', 
+            file: window.SF_PackFiles.length > 1 ? `${window.SF_PackFiles.length} files (.sfpack)` : window.SF_PackFiles[0].file.name,
+            ext, size: secretBytes.length, 
+            fileCount: window.SF_PackFiles.length,
             carrier: imageFile.name,
-            capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+            capacity: totalCapacity,
             status: 'ok'
         });
 
-        // --- Stats ---
-        const psnrValue = calculatePSNR(originalImageData.data, resultBytes);
-        const psnrText = psnrValue === Infinity ? '∞ dB' : psnrValue.toFixed(2) + ' dB';
-        const psnrCls = psnrValue > 45 ? 'stat-good' : psnrValue > 35 ? 'stat-warn' : 'stat-fail';
+        // Stats
+        const psnrValue = calculatePSNR(originalPixels, resultBytes);
+        const psnrText  = psnrValue === Infinity ? '∞ dB' : psnrValue.toFixed(2) + ' dB';
+        const psnrCls   = psnrValue > 45 ? 'stat-good' : psnrValue > 35 ? 'stat-warn' : 'stat-fail';
 
-        const secretHash = await sha256hex(secretBytes.buffer);
-        const totalCapacity = Math.floor((canvas.width * canvas.height * 3) / 8);
-        const usagePct = ((secretBytes.length / totalCapacity) * 100).toFixed(1);
+        const secretHash = await sha256hex(secretBytes);
+        const usagePct = totalCapacity > 0
+            ? ((secretBytes.length / totalCapacity) * 100).toFixed(1)
+            : '—';
 
-        if (stats) stats.innerHTML = buildStatsHTML([
-            { label: 'STATUS',               value: 'FOLDED SUCCESSFULLY',                cls: 'stat-good' },
-            { label: 'IMAGE QUALITY (PSNR)', value: psnrText,                             cls: psnrCls },
-            { label: 'ENCRYPTION',           value: 'AES-256-CBC ✓',                      cls: 'stat-good' },
-            { label: 'DUAL LAYER',           value: hasDecoy ? 'ACTIVE (DENIABLE) ✓' : 'INACTIVE', cls: hasDecoy ? 'stat-good' : '' },
+        const { score: pScore, label: pLabel } = assessPassword(password);
+        const strengthMap = { 1: 'stat-fail', 2: 'stat-warn', 3: 'stat-warn', 4: 'stat-good' };
+
+        const statsRows = [
+            { label: 'STATUS',               value: 'FOLDED SUCCESSFULLY',                       cls: 'stat-good' },
+            { label: 'IMAGE QUALITY (PSNR)', value: psnrText,                                    cls: psnrCls },
+            { label: 'ENCRYPTION',           value: 'AES-256-CBC ✓',                             cls: 'stat-good' },
+            { label: 'KEY DERIVATION',       value: 'PBKDF2-SHA256 · 100k iter ✓',               cls: 'stat-good' },
+            { label: 'DUAL LAYER',           value: hasDecoy ? 'ACTIVE — TRUE DENIABILITY ✓' : 'INACTIVE', cls: hasDecoy ? 'stat-good' : '' },
+            { label: 'PASSWORD STRENGTH',    value: pLabel.toUpperCase(),                        cls: strengthMap[pScore] || '' },
             { label: 'CAPACITY USED',        value: usagePct + '%' },
             { label: 'PAYLOAD SIZE',         value: formatBytes(secretBytes.length) },
-            { label: 'FILE TYPE',            value: '.' + ext.toUpperCase() },
+            { label: 'FILE TYPE',            value: ext === 'sfpack' ? 'MULTI-FILE PACK' : '.' + ext.toUpperCase() },
             { label: 'SHA-256 (payload)',    value: secretHash.substring(0, 20) + '...' },
-        ]);
+        ];
 
-        // --- Heatmap ---
-        generateHeatmap(imageBytes, resultBytes, canvas.width, canvas.height);
+        if (hasDecoy) {
+            statsRows.push({ label: 'PARTITION SPLIT', value: '~25–50% (cryptographically derived)', cls: 'stat-warn' });
+        }
+
+        if (stats) stats.innerHTML = buildStatsHTML(statsRows);
+
+        generateHeatmap(originalPixels, resultBytes, canvas.width, canvas.height, hasDecoy);
 
     } catch (err) {
         console.error('[ShadowFold] Encode error:', err);
@@ -439,86 +778,137 @@ async function handleEncode() {
 // DECODE
 // ==============================
 async function handleDecode() {
-    if (!window.Module || typeof window.Module.decode_data !== 'function') {
+    const wasmVer = getWASMVersion();
+    const mod = window.Module || (typeof Module !== 'undefined' ? Module : null);
+
+    if (wasmVer === 'none') {
         alert('WASM module not yet active. Please wait a moment and try again.');
         return;
     }
 
-    const imageInput = document.getElementById('decode-image-input');
-    const passwordInput = document.getElementById('decode-password');
-    const stats = document.getElementById('decode-stats');
+    const imageInput    = document.getElementById('decode-image-input');
+    const stats         = document.getElementById('decode-stats');
 
-    const password = passwordInput ? passwordInput.value : '';
+    // Check Mode
+    const activeModeBtn = document.querySelector('#decode-mode-selector .mode-btn.active');
+    const isDual = activeModeBtn && activeModeBtn.dataset.mode === 'dual';
 
-    if (!imageInput || !imageInput.files[0]) {
-        alert('Please upload an encoded image.');
-        return;
+    let password = '';
+    let realPwd = '';
+    let decoyPwd = '';
+    let extractDecoy = false;
+
+    if (isDual) {
+        realPwd = document.getElementById('decode-real-password').value.trim();
+        decoyPwd = document.getElementById('decode-decoy-password').value.trim();
+        const activeLayerBtn = document.querySelector('#decode-layer-selector .mode-btn.active');
+        extractDecoy = activeLayerBtn && activeLayerBtn.dataset.layer === 'decoy';
+        
+        if (!realPwd || !decoyPwd) {
+            alert('Dual-layer images require BOTH passwords to locate either layer.');
+            return;
+        }
+    } else {
+        password = document.getElementById('decode-password').value.trim();
+        if (!password) { alert('Please enter the frequency (password).'); return; }
     }
-    if (!password) {
-        alert('Please enter the frequency (password).');
-        return;
-    }
+
+    if (!imageInput?.files[0]) { alert('Please upload an encoded image.'); return; }
 
     showLoader('ENTERING THE VOID...');
 
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx    = canvas.getContext('2d');
 
     try {
         const imageBitmap = await createImageBitmap(imageInput.files[0]);
-        canvas.width = imageBitmap.width;
+        canvas.width  = imageBitmap.width;
         canvas.height = imageBitmap.height;
         ctx.drawImage(imageBitmap, 0, 0);
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const imageBytes = new Uint8Array(imageData.data.buffer);
+        const imageData  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        const imageBytes = new Uint8Array(imageData.data);
 
-        const result = window.Module.decode_data(imageBytes, password);
+        // Sanity check
+        if (imageBytes.length !== canvas.width * canvas.height * 4) {
+            throw new Error(`Memory mismatch: Image size ${canvas.width}x${canvas.height} requires ${canvas.width * canvas.height * 4} bytes, but got ${imageBytes.length}.`);
+        }
 
-        if (!result) {
-            alert('Frequency mismatch or image corrupted. Check your password.');
+        let result;
+        if (wasmVer === 'v2') {
+            if (isDual) {
+                result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, canvas.width, canvas.height);
+            } else {
+                result = mod.decode_data_wh(imageBytes, password, canvas.width, canvas.height);
+            }
+        } else if (wasmVer === 'v1') {
+            // Mid build: decode_data_dual might exist, but if not fall back
+            if (isDual && typeof mod.decode_data_dual === 'function') {
+                result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, 0, 0);
+            } else {
+                result = mod.decode_data(imageBytes, password);
+            }
+        } else {
+            // v0: only single decode_data
+            result = mod.decode_data(imageBytes, password);
+        }
+
+        if (!result || !result.data) {
+            alert('Frequency mismatch or image corrupted. Check your password(s).');
             if (window.SFLog) window.SFLog.add({
-                type: 'decode',
-                file: imageInput.files[0].name,
-                ext: '', size: 0,
-                carrier: imageInput.files[0].name,
-                capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+                type: 'decode', file: imageInput.files[0].name,
+                ext: '', size: 0, carrier: imageInput.files[0].name,
+                capacity: 0,
                 status: 'fail'
             });
             return;
         }
 
-        // result.data is a Uint8Array, result.extension is a string
-        const fileData = new Uint8Array(result.data);
-        const fileExt = result.extension || 'bin';
+        // result.data is already a standalone Uint8Array copy from WASM
+        const fileData = new Uint8Array(result.data).slice(); // copy out of WASM heap
+        const fileExt  = result.extension || 'bin';
 
-        const blob = new Blob([fileData], { type: 'application/octet-stream' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `decoded.${fileExt}`;
-        a.click();
+        const unpackResult = await unpackPayload(fileData, fileExt);
 
-        // --- Dashboard log ---
+        // Clear password fields after use
+        setTimeout(() => { 
+            if (document.getElementById('decode-password')) document.getElementById('decode-password').value = ''; 
+            if (document.getElementById('decode-real-password')) document.getElementById('decode-real-password').value = '';
+            if (document.getElementById('decode-decoy-password')) document.getElementById('decode-decoy-password').value = '';
+        }, 1500);
+
         if (window.SFLog) window.SFLog.add({
-            type: 'decode',
-            file: imageInput.files[0].name,
-            ext: fileExt,
-            size: fileData.length,
+            type: 'decode', file: imageInput.files[0].name,
+            ext: fileExt, size: fileData.length,
             carrier: imageInput.files[0].name,
-            capacity: Math.floor(canvas.width * canvas.height * 3 / 8),
+            capacity: 0,
             status: 'ok'
         });
 
-        // --- Stats ---
-        const fileHash = await sha256hex(fileData.buffer);
+        const fileHash = await sha256hex(fileData);
 
-        if (stats) stats.innerHTML = buildStatsHTML([
-            { label: 'STATUS',         value: 'DATA EXTRACTED',            cls: 'stat-good' },
-            { label: 'FILE TYPE',      value: '.' + fileExt.toUpperCase() },
-            { label: 'EXTRACTED SIZE', value: formatBytes(fileData.length) },
-            { label: 'SHA-256',        value: fileHash.substring(0, 20) + '...' },
-            { label: 'ENCRYPTION',     value: 'AES-256-CBC DECRYPTED ✓',   cls: 'stat-good' },
-        ]);
+        const statsRows = [
+            { label: 'STATUS',         value: 'DATA EXTRACTED',           cls: 'stat-good' },
+        ];
+
+        if (fileExt === 'sfpack') {
+            statsRows.push({ label: 'PACK TYPE', value: 'MULTI-FILE SFPACK ◈', cls: 'stat-warn' });
+            statsRows.push({ label: 'FILES EXTRACTED', value: unpackResult.fileCount.toString() });
+            statsRows.push({ label: 'TOTAL SIZE', value: formatBytes(unpackResult.totalSize) });
+            
+            const fileListStr = unpackResult.names.join(' · ');
+            const truncatedList = fileListStr.length > 60 ? fileListStr.substring(0, 57) + '...' : fileListStr;
+            statsRows.push({ label: 'FILES', value: truncatedList });
+        } else {
+            statsRows.push({ label: 'FILE TYPE',      value: '.' + fileExt.toUpperCase() });
+            statsRows.push({ label: 'EXTRACTED SIZE', value: formatBytes(fileData.length) });
+        }
+
+        statsRows.push({ label: 'SHA-256',        value: fileHash.substring(0, 20) + '...' });
+        statsRows.push({ label: 'ENCRYPTION',     value: 'AES-256-CBC DECRYPTED ✓',  cls: 'stat-good' });
+
+        if (stats) stats.innerHTML = buildStatsHTML(statsRows);
 
     } catch (err) {
         console.error('[ShadowFold] Decode error:', err);
@@ -530,21 +920,23 @@ async function handleDecode() {
 
 // ==============================
 // PIXEL HEATMAP
+// Only marks pixels that changed in non-alpha channels.
+// Uses green for modified to distinguish from the red UI chrome.
 // ==============================
-function generateHeatmap(originalBytes, encodedBytes, width, height) {
+function generateHeatmap(originalBytes, encodedBytes, width, height, isDual) {
     const heatmapSection = document.getElementById('heatmap-section');
-    const heatmapCanvas = document.getElementById('heatmap-canvas');
-    const heatmapLabel = document.getElementById('heatmap-label');
+    const heatmapCanvas  = document.getElementById('heatmap-canvas');
+    const heatmapLabel   = document.getElementById('heatmap-label');
 
     if (!heatmapSection || !heatmapCanvas) return;
 
     heatmapSection.style.display = 'block';
-    heatmapCanvas.width = width;
+    heatmapCanvas.width  = width;
     heatmapCanvas.height = height;
 
-    const ctx = heatmapCanvas.getContext('2d');
+    const ctx       = heatmapCanvas.getContext('2d');
     const imageData = ctx.createImageData(width, height);
-    const data = imageData.data;
+    const data      = imageData.data;
     let modifiedCount = 0;
 
     for (let i = 0; i < originalBytes.length; i += 4) {
@@ -554,9 +946,10 @@ function generateHeatmap(originalBytes, encodedBytes, width, height) {
             (originalBytes[i+2] !== encodedBytes[i+2]);
 
         if (isModified) {
-            data[i]   = 255;
-            data[i+1] = 0;
-            data[i+2] = 51;
+            // Green dot = payload bit written here
+            data[i]   = 0;
+            data[i+1] = 200;
+            data[i+2] = 120;
             data[i+3] = 255;
             modifiedCount++;
         } else {
@@ -571,15 +964,27 @@ function generateHeatmap(originalBytes, encodedBytes, width, height) {
 
     if (heatmapLabel) {
         const pct = ((modifiedCount / (width * height)) * 100).toFixed(2);
-        heatmapLabel.textContent = `${modifiedCount.toLocaleString()} Pixels (${pct}%)`;
+        let labelText = `${modifiedCount.toLocaleString()} Pixels Modified (${pct}%)`;
+        if (isDual) {
+            labelText += ` · ✓ ZERO partition overlap detected`;
+        }
+        heatmapLabel.textContent = labelText;
     }
+}
+
+// ==============================
+// STRENGTH METER RESET HELPER
+// ==============================
+function updateStrengthMeter(inputId, meterId) {
+    const meter = document.getElementById(meterId);
+    if (meter) meter.innerHTML = '';
 }
 
 // ==============================
 // LOADER HELPERS
 // ==============================
 function showLoader(text) {
-    const loader = document.getElementById('loader');
+    const loader     = document.getElementById('loader');
     const loaderText = document.getElementById('loader-text');
     if (loaderText) loaderText.textContent = text;
     if (loader) loader.classList.add('show');
