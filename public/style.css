@@ -350,14 +350,32 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 18px; /* 🔥 fixes spacing */
+    gap: 18px;
     z-index: 9999;
-    animation: fadeOut 1.5s ease 2.5s forwards;
+    cursor: pointer;
+}
+
+#intro-screen.fade-out {
+    animation: fadeOut 1.5s ease forwards;
+}
+
+#intro-prompt {
+    font-family: var(--font-primary);
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 10px var(--primary-color);
+    animation: blink 2s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 /* ===== SKULL ===== */
 #skull-img {
-    width: 95px; /* 🔥 perfect size */
+    width: 95px;
     opacity: 0.9;
     filter: drop-shadow(0 0 12px #ff0033);
     animation: fadeScale 1.2s ease, pulse 2s infinite;
