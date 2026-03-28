@@ -181,6 +181,59 @@ h2 {
     color: var(--primary-color);
 }
 
+/* ===== STATS PANEL ===== */ 
+.stats-container { 
+    margin-top: 14px; 
+} 
+ 
+.stat-row { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 7px 0; 
+    border-bottom: 1px solid rgba(255, 0, 51, 0.07); 
+} 
+ 
+.stat-key { 
+    font-family: var(--font-secondary); 
+    font-size: 0.62rem; 
+    letter-spacing: 0.14em; 
+    color: #444; 
+    text-transform: uppercase; 
+    flex-shrink: 0; 
+} 
+ 
+.stat-val { 
+    font-family: var(--font-secondary); 
+    font-size: 0.72rem; 
+    color: #666; 
+    text-align: right; 
+    max-width: 65%; 
+    word-break: break-all; 
+} 
+ 
+.stat-good { 
+    color: rgba(0, 200, 120, 0.85) !important; 
+} 
+ 
+.stat-warn { 
+    color: rgba(255, 165, 0, 0.85) !important; 
+} 
+ 
+.stat-fail { 
+    color: rgba(255, 0, 51, 0.85) !important; 
+} 
+ 
+/* ===== SCROLLABLE BODY FIX ===== */ 
+body { 
+    overflow-y: auto; 
+    padding-top: 70px; 
+} 
+ 
+.glass-card { 
+    margin: 20px auto; 
+}
+
 .password-container {
     position: relative;
     margin-bottom: 1.5rem;
