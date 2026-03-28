@@ -6,6 +6,133 @@
     <title>Shadow Fold – The Visual Void</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /* Reverting index.html specific styles to its original look */
+        :root {
+            --font-primary: var(--font-orbitron);
+            --font-mono: var(--font-secondary);
+            --primary-color: #ff0033; /* Old red */
+        }
+        
+        h1 {
+            font-family: var(--font-orbitron);
+            text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
+            letter-spacing: 4px;
+            background: none;
+            -webkit-background-clip: initial;
+            -webkit-text-fill-color: initial;
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 2.5rem;
+        }
+
+        h2 {
+            font-family: var(--font-secondary);
+            font-size: 1rem;
+            color: var(--text-color);
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            opacity: 1;
+        }
+
+        .tab-button {
+            font-family: var(--font-orbitron);
+            letter-spacing: 1px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            background: transparent;
+            box-shadow: none;
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .tabs {
+            background: transparent;
+            border-bottom: 1px solid rgba(255, 0, 51, 0.2);
+            border-radius: 0;
+            padding: 0;
+            width: 100%;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .panel h3 {
+            font-family: var(--font-orbitron);
+            text-align: center;
+            letter-spacing: 2px;
+            font-size: 1.17em;
+        }
+
+        .drop-zone {
+            border: 2px dashed rgba(255, 0, 51, 0.4);
+            background: transparent;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .drop-zone p, .action-button, #loader-text {
+            font-family: var(--font-secondary);
+        }
+
+        .action-button {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+            box-shadow: 0 0 10px rgba(255, 0, 51, 0.5) inset;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            padding: 1rem;
+        }
+
+        .action-button:hover {
+            background-color: var(--primary-color);
+            color: var(--background-color);
+            box-shadow: 0 0 20px var(--primary-color);
+            transform: none;
+        }
+        
+        .intro-text {
+            font-family: var(--font-orbitron);
+            color: #ff0033;
+            text-shadow: 0 0 8px #ff0033;
+        }
+
+        .glass-card {
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 0 30px rgba(255, 0, 51, 0.3);
+        }
+
+        .crt-scanline {
+            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 3px, 3px 100%;
+            opacity: 1;
+            animation: scanline 10s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100%); }
+        }
+    </style>
 </head>
 <body>
     <nav class="nav-bar">
@@ -27,8 +154,8 @@
     <div class="container">
         <div class="glass-card">
             <header>
-                <h1>SHADOW FOLD</h1>
-                <h2>THE VISUAL VOID</h2>
+                <h1 id="main-title">SHADOW FOLD</h1>
+                <h2 id="sub-title">THE VISUAL VOID</h2>
             </header>
 
             <div class="tabs">
@@ -95,6 +222,61 @@
     </div>
     <canvas id="canvas" style="display: none;"></canvas>
     <script src="build/steganography.js"></script>
+    <script>
+        // Hacker typing effect
+        function typeEffect(element, speed) {
+            const text = element.innerText;
+            element.innerText = '';
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < text.length) {
+                    element.innerText += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, speed);
+        }
+
+        // Glitch text effect
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        function glitchEffect(element) {
+            let iteration = 0;
+            let interval = null;
+            const originalText = element.dataset.value;
+
+            clearInterval(interval);
+            
+            interval = setInterval(() => {
+                element.innerText = element.innerText
+                .split("")
+                .map((letter, index) => {
+                    if(index < iteration) {
+                        return originalText[index];
+                    }
+                    return letters[Math.floor(Math.random() * 26)]
+                })
+                .join("");
+                
+                if(iteration >= originalText.length){ 
+                    clearInterval(interval);
+                }
+                
+                iteration += 1 / 3;
+            }, 30);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainTitle = document.getElementById('main-title');
+            const subTitle = document.getElementById('sub-title');
+            
+            mainTitle.dataset.value = mainTitle.innerText;
+            subTitle.dataset.value = subTitle.innerText;
+            
+            setTimeout(() => glitchEffect(mainTitle), 500);
+            setTimeout(() => glitchEffect(subTitle), 1200);
+        });
+    </script>
     <script src="script.js"></script>
 </body>
 </html>

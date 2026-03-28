@@ -139,18 +139,32 @@ function handleFileChange(input, preview, nameDisplay) {
     const file = input.files[0];
     if (!file) return;
 
-    if (preview) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
+    // Visual feedback for file selection
+    const dropZone = input.parentElement;
+    dropZone.classList.add('scanning');
+    
+    // Play a subtle scan sound if available or use glitch
+    const scanSound = new Audio("assets/sounds/glitch.mp3");
+    scanSound.volume = 0.1;
+    scanSound.play().catch(() => {});
 
-    if (nameDisplay) {
-        nameDisplay.textContent = file.name;
-    }
+    setTimeout(() => {
+        dropZone.classList.remove('scanning');
+        if (preview) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                preview.classList.add('fade-in');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        if (nameDisplay) {
+            nameDisplay.textContent = file.name;
+            nameDisplay.classList.add('highlight-text');
+        }
+    }, 600);
 }
 
 

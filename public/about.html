@@ -5,96 +5,173 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About – Shadow Fold</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { overflow-y: auto; align-items: flex-start; }
+        
 
         .nav-bar {
             position: fixed; top: 0; left: 0; right: 0; z-index: 200;
             display: flex; align-items: center; justify-content: space-between;
             padding: 14px 40px;
             background: rgba(13,13,13,0.94);
-            border-bottom: 1px solid rgba(255,0,51,0.18);
+            border-bottom: 1px solid rgba(255,0,76,0.18);
             backdrop-filter: blur(8px);
         }
-        .nav-logo { font-family: var(--font-primary); font-size: .88rem; color: var(--primary-color); letter-spacing: .2em; text-decoration: none; text-shadow: 0 0 10px var(--primary-color); }
+        .nav-logo {
+            font-family: var(--font-primary); font-size: .88rem;
+            font-weight: 800;
+            color: var(--primary-color); letter-spacing: .2em;
+            text-decoration: none;
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
         .nav-links { display: flex; gap: 28px; }
-        .nav-links a { font-family: var(--font-secondary); font-size: .72rem; color: #666; text-decoration: none; letter-spacing: .12em; text-transform: uppercase; transition: color .2s; }
+        .nav-links a {
+            font-family: var(--font-primary); font-size: .72rem;
+            font-weight: 600;
+            color: #666; text-decoration: none; letter-spacing: .12em;
+            text-transform: uppercase; transition: color .2s;
+        }
         .nav-links a:hover, .nav-links a.active { color: var(--primary-color); }
 
         .page-wrap { position: relative; z-index: 1; max-width: 900px; width: 90vw; margin: 110px auto 70px; }
 
         .page-header { text-align: center; margin-bottom: 54px; animation: fadeIn .6s ease; }
-        .page-header h1 { font-family: var(--font-primary); font-size: clamp(1.4rem,4vw,2rem); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); letter-spacing: .15em; }
-        .page-header p { font-family: var(--font-secondary); color: #555; font-size: .8rem; letter-spacing: .1em; margin-top: 10px; }
+        .page-header h1 {
+            font-family: var(--font-primary); font-size: clamp(1.4rem,4vw,2.5rem);
+            font-weight: 800;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+            background: linear-gradient(180deg, #fff 0%, #aaa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .page-header p { font-family: var(--font-mono); color: var(--primary-color); font-size: .75rem; letter-spacing: .2em; margin-top: 10px; text-transform: uppercase; }
 
         /* project intro */
         .intro-card {
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.14);
-            border-radius: 10px; padding: 30px 32px; margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.02); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px; padding: 40px 48px; margin-bottom: 48px;
             animation: fadeIn .5s ease .1s both;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
         }
-        .intro-card .label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .25em; color: rgba(255,0,51,.55); margin-bottom: 10px; }
-        .intro-card h2 { font-family: var(--font-primary); font-size: 1rem; color: #ddd; letter-spacing: .1em; margin-bottom: 14px; }
-        .intro-card p { font-family: var(--font-secondary); font-size: .8rem; color: #5a5a5a; line-height: 1.9; margin-bottom: 10px; }
+        .intro-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary-color);
+            opacity: 0.5;
+        }
+        .intro-card .label { font-family: var(--font-mono); font-size: .65rem; letter-spacing: .25em; color: var(--primary-color); margin-bottom: 16px; text-transform: uppercase; opacity: 0.7; }
+        .intro-card h2 { font-family: var(--font-primary); font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; margin-bottom: 20px; }
+        .intro-card p { font-family: var(--font-primary); font-size: 1rem; color: var(--text-dim); line-height: 1.8; margin-bottom: 20px; }
         .intro-card p:last-child { margin-bottom: 0; }
-        .intro-card strong { color: #999; }
+        .intro-card strong { color: #fff; font-weight: 600; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
 
         /* hackathon badge */
         .hackathon-badge {
-            display: inline-flex; align-items: center; gap: 12px;
-            background: rgba(255,0,51,0.06); border: 1px solid rgba(255,0,51,0.25);
-            border-radius: 6px; padding: 12px 18px; margin-bottom: 40px;
+            display: inline-flex; align-items: center; gap: 16px;
+            background: rgba(255,0,76,0.06); border: 1px solid rgba(255,0,76,0.2);
+            border-radius: 12px; padding: 16px 24px; margin-bottom: 40px;
             animation: fadeIn .5s ease .15s both;
         }
-        .badge-icon { font-size: 1.4rem; }
-        .badge-text { font-family: var(--font-secondary); font-size: .75rem; color: #777; }
-        .badge-text strong { font-family: var(--font-primary); color: var(--primary-color); font-size: .78rem; letter-spacing: .1em; display: block; margin-bottom: 2px; }
+        .badge-icon { font-size: 1.6rem; color: var(--primary-color); display: flex; align-items: center; }
+        .badge-text { font-family: var(--font-primary); font-size: .85rem; color: var(--text-dim); }
+        .badge-text strong { font-family: var(--font-primary); color: var(--primary-color); font-size: .9rem; font-weight: 800; letter-spacing: .05em; display: block; margin-bottom: 2px; }
 
         /* tech stack */
         .tech-section { margin-bottom: 44px; animation: fadeIn .5s ease .2s both; }
-        .section-title { font-family: var(--font-primary); font-size: .75rem; color: var(--primary-color); letter-spacing: .2em; margin-bottom: 18px; }
-        .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+        .section-title { font-family: var(--font-mono); font-size: .75rem; color: var(--primary-color); letter-spacing: .25em; margin-bottom: 24px; text-transform: uppercase; }
+        .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
         .tech-card {
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
-            border-radius: 8px; padding: 16px 18px;
-            transition: border-color .2s, box-shadow .2s;
+            background: var(--card-background); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 24px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
         }
-        .tech-card:hover { border-color: rgba(255,0,51,0.35); box-shadow: 0 0 16px rgba(255,0,51,0.08); }
-        .tech-icon { font-size: 1.3rem; margin-bottom: 8px; }
-        .tech-name { font-family: var(--font-primary); font-size: .65rem; color: var(--primary-color); letter-spacing: .12em; margin-bottom: 4px; }
-        .tech-role { font-family: var(--font-secondary); font-size: .7rem; color: #4a4a4a; line-height: 1.5; }
+        .tech-card:hover { 
+            border-color: var(--primary-color); 
+            transform: translateY(-8px) scale(1.02); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(255,0,76,0.1); 
+        }
+        .tech-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.05), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+        .tech-card:hover::after {
+            transform: translateX(100%);
+        }
+        .tech-icon { font-size: 1.5rem; margin-bottom: 12px; color: var(--primary-color); transition: transform 0.3s; }
+        .tech-card:hover .tech-icon { transform: rotate(10deg) scale(1.1); }
+        .tech-icon svg { width: 24px; height: 24px; }
+        .tech-name { font-family: var(--font-mono); font-size: .65rem; color: var(--primary-color); font-weight: 700; letter-spacing: .12em; margin-bottom: 6px; text-transform: uppercase; }
+        .tech-role { font-family: var(--font-primary); font-size: .85rem; color: var(--text-dim); line-height: 1.5; font-weight: 400; }
 
         /* team section */
         .team-section { margin-bottom: 44px; animation: fadeIn .5s ease .3s both; }
-        .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
         .team-card {
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
-            border-radius: 10px; padding: 24px 20px; text-align: center;
-            transition: border-color .25s, transform .25s, box-shadow .25s;
+            background: var(--card-background); border: 1px solid var(--border-color);
+            border-radius: 20px; padding: 32px 24px; text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: default;
+            backdrop-filter: blur(20px);
+            position: relative;
         }
-        .team-card:hover { border-color: rgba(255,0,51,0.38); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(255,0,51,0.1); }
+        .team-card:hover { 
+            border-color: var(--primary-color); 
+            transform: translateY(-10px); 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 30px rgba(255,0,76,0.15); 
+        }
         .avatar {
-            width: 62px; height: 62px; border-radius: 50%;
-            border: 1px solid rgba(255,0,51,0.3);
-            background: rgba(255,0,51,0.07);
+            width: 76px; height: 76px; border-radius: 24px;
+            border: 1px solid rgba(255,0,76,0.2);
+            background: rgba(255,0,76,0.05);
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; margin: 0 auto 14px;
-            box-shadow: 0 0 12px rgba(255,0,51,0.15);
+            font-size: 1.6rem; margin: 0 auto 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: var(--primary-color);
         }
-        .member-name { font-family: var(--font-primary); font-size: .72rem; color: #ddd; letter-spacing: .1em; margin-bottom: 5px; }
-        .member-role { font-family: var(--font-secondary); font-size: .68rem; color: var(--primary-color); letter-spacing: .08em; margin-bottom: 8px; }
-        .member-skills { font-family: var(--font-secondary); font-size: .65rem; color: #444; line-height: 1.6; }
+        .avatar svg { width: 32px; height: 32px; }
+        .team-card:hover .avatar { 
+            transform: scale(1.15) rotate(8deg); 
+            border-color: var(--primary-color);
+            box-shadow: 0 15px 30px rgba(255,0,76,0.3);
+            background: rgba(255,0,76,0.1);
+        }
+        .member-name { font-family: var(--font-primary); font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; margin-bottom: 6px; }
+        .member-role { font-family: var(--font-mono); font-size: .65rem; font-weight: 700; color: var(--primary-color); letter-spacing: .1em; margin-bottom: 12px; text-transform: uppercase; }
+        .member-skills { font-family: var(--font-primary); font-size: .85rem; color: var(--text-dim); line-height: 1.6; }
 
         /* problem & solution */
-        .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 44px; animation: fadeIn .5s ease .4s both; }
-        .ps-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 10px; padding: 22px 24px; }
-        .ps-label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .22em; color: rgba(255,0,51,.55); margin-bottom: 8px; }
-        .ps-title { font-family: var(--font-primary); font-size: .78rem; color: #ccc; letter-spacing: .08em; margin-bottom: 12px; }
+        .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 44px; animation: fadeIn .5s ease .4s both; }
+        .ps-card { 
+            background: rgba(255, 255, 255, 0.02); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            border-radius: 20px; padding: 32px; 
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+        .ps-card:hover {
+            border-color: var(--neon-border);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .ps-label { font-family: var(--font-mono); font-size: .65rem; letter-spacing: .25em; color: var(--primary-color); margin-bottom: 12px; text-transform: uppercase; opacity: 0.7; }
+        .ps-title { font-family: var(--font-primary); font-size: 1.1rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; margin-bottom: 16px; }
         .ps-list { list-style: none; }
-        .ps-list li { font-family: var(--font-secondary); font-size: .75rem; color: #4a4a4a; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.6; }
-        .ps-list li::before { content: '▸ '; color: var(--primary-color); }
+        .ps-list li { font-family: var(--font-primary); font-size: .9rem; color: var(--text-dim); padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.6; }
+        .ps-list li::before { content: '→ '; color: var(--primary-color); font-weight: 800; margin-right: 8px; }
 
         /* future roadmap */
         .roadmap { animation: fadeIn .5s ease .5s both; }
@@ -145,7 +222,7 @@
         </div>
 
         <div class="hackathon-badge">
-            <div class="badge-icon">⚡</div>
+            <div class="badge-icon"><i data-lucide="award"></i></div>
             <div class="badge-text">
                 <strong>BUILD WITH TRAE</strong>
                 Problem Statement: Secure Data Privacy in the Surveillance Era &nbsp;·&nbsp; Theme: Cybersecurity / Privacy (Software)
@@ -185,12 +262,12 @@
         <div class="tech-section">
             <div class="section-title">TECH STACK</div>
             <div class="tech-grid">
-                <div class="tech-card"><div class="tech-icon">⚙️</div><div class="tech-name">C++</div><div class="tech-role">Core LSB encoding/decoding logic compiled via Emscripten</div></div>
-                <div class="tech-card"><div class="tech-icon">🔷</div><div class="tech-name">WebAssembly</div><div class="tech-role">Near-native performance for pixel-level operations in browser</div></div>
-                <div class="tech-card"><div class="tech-icon">🎨</div><div class="tech-name">Canvas API</div><div class="tech-role">Raw RGBA pixel extraction and stego image output</div></div>
-                <div class="tech-card"><div class="tech-icon">🌐</div><div class="tech-name">JavaScript</div><div class="tech-role">UI layer, PRNG shuffle, file I/O, WASM bridge</div></div>
-                <div class="tech-card"><div class="tech-icon">🖥️</div><div class="tech-name">Node / Express</div><div class="tech-role">Local dev server and WASM module serving</div></div>
-                <div class="tech-card"><div class="tech-icon">🔒</div><div class="tech-name">FNV-1a + Mulberry32</div><div class="tech-role">Password hashing and PRNG for pixel order shuffle</div></div>
+                <div class="tech-card"><div class="tech-icon"><i data-lucide="settings"></i></div><div class="tech-name">C++</div><div class="tech-role">Core LSB encoding/decoding logic compiled via Emscripten</div></div>
+                <div class="tech-card"><div class="tech-icon"><i data-lucide="binary"></i></div><div class="tech-name">WebAssembly</div><div class="tech-role">Near-native performance for pixel-level operations in browser</div></div>
+                <div class="tech-card"><div class="tech-icon"><i data-lucide="palette"></i></div><div class="tech-name">Canvas API</div><div class="tech-role">Raw RGBA pixel extraction and stego image output</div></div>
+                <div class="tech-card"><div class="tech-icon"><i data-lucide="code-2"></i></div><div class="tech-name">JavaScript</div><div class="tech-role">UI layer, PRNG shuffle, file I/O, WASM bridge</div></div>
+                <div class="tech-card"><div class="tech-icon"><i data-lucide="server"></i></div><div class="tech-name">Node / Express</div><div class="tech-role">Local dev server and WASM module serving</div></div>
+                <div class="tech-card"><div class="tech-icon"><i data-lucide="key-round"></i></div><div class="tech-name">FNV-1a + Mulberry32</div><div class="tech-role">Password hashing and PRNG for pixel order shuffle</div></div>
             </div>
         </div>
 
@@ -241,22 +318,25 @@
     <script>
         // Edit your team members here
         const team = [
-            { emoji: '💀', name: 'Anirudh', role: 'Team Lead', skills: 'C++ · WebAssembly · Steganography' },
-            { emoji: '🔐', name: 'Shivanshu', role: 'Backend / WASM', skills: 'Emscripten · LSB Engine · Crypto' },
-            { emoji: '🎨', name: 'Aditya',role: 'Frontend', skills: 'JS · Canvas API · UI/UX' },
-            { emoji: '⚡', name: 'Abhay', role: 'Security Research', skills: 'PRNG · Steganalysis · Testing' },
+            { icon: 'skull', name: 'Anirudh', role: 'Team Lead', skills: 'C++ · WebAssembly · Steganography' },
+            { icon: 'shield-check', name: 'Shivanshu', role: 'Backend / WASM', skills: 'Emscripten · LSB Engine · Crypto' },
+            { icon: 'brush', name: 'Aditya',role: 'Frontend', skills: 'JS · Canvas API · UI/UX' },
+            { icon: 'zap', name: 'Abhay', role: 'Security Research', skills: 'PRNG · Steganalysis · Testing' },
         ];
 
         const grid = document.getElementById('team-grid');
         team.forEach(m => {
             grid.innerHTML += `
                 <div class="team-card">
-                    <div class="avatar">${m.emoji}</div>
+                    <div class="avatar"><i data-lucide="${m.icon}"></i></div>
                     <div class="member-name">${m.name}</div>
                     <div class="member-role">${m.role}</div>
                     <div class="member-skills">${m.skills}</div>
                 </div>`;
         });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
     </script>
 </body>
 </html>

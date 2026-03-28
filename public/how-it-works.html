@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>How It Works – Shadow Fold</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { overflow-y: auto; align-items: flex-start; }
 
@@ -14,18 +15,20 @@
             display: flex; align-items: center; justify-content: space-between;
             padding: 14px 40px;
             background: rgba(13,13,13,0.94);
-            border-bottom: 1px solid rgba(255,0,51,0.18);
+            border-bottom: 1px solid rgba(255,0,76,0.18);
             backdrop-filter: blur(8px);
         }
         .nav-logo {
             font-family: var(--font-primary); font-size: .88rem;
+            font-weight: 800;
             color: var(--primary-color); letter-spacing: .2em;
             text-decoration: none;
-            text-shadow: 0 0 10px var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-glow);
         }
         .nav-links { display: flex; gap: 28px; }
         .nav-links a {
-            font-family: var(--font-secondary); font-size: .72rem;
+            font-family: var(--font-primary); font-size: .72rem;
+            font-weight: 600;
             color: #666; text-decoration: none; letter-spacing: .12em;
             text-transform: uppercase; transition: color .2s;
         }
@@ -39,14 +42,18 @@
 
         .page-header { text-align: center; margin-bottom: 54px; animation: fadeIn .6s ease; }
         .page-header h1 {
-            font-family: var(--font-primary); font-size: clamp(1.4rem, 4vw, 2rem);
-            color: var(--primary-color);
-            text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3);
-            letter-spacing: .15em;
+            font-family: var(--font-primary); font-size: clamp(1.4rem, 4vw, 2.5rem);
+            font-weight: 800;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+            background: linear-gradient(180deg, #fff 0%, #aaa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         .page-header p {
-            font-family: var(--font-secondary); color: #555;
-            font-size: .8rem; letter-spacing: .1em; margin-top: 10px;
+            font-family: var(--font-mono); color: var(--primary-color);
+            font-size: .75rem; letter-spacing: .2em; margin-top: 10px;
+            text-transform: uppercase;
         }
 
         /* pipeline flow */
@@ -54,30 +61,38 @@
             display: flex; align-items: center; justify-content: center;
             flex-wrap: wrap; gap: 0;
             background: var(--card-background);
-            border: 1px solid rgba(255,0,51,0.14);
-            border-radius: 10px; padding: 28px 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 15px; padding: 32px 24px;
             margin-bottom: 48px;
             animation: fadeIn .5s ease .1s both;
+            backdrop-filter: blur(20px);
         }
         .pipeline-label {
-            width: 100%; font-family: var(--font-secondary); font-size: .65rem;
+            width: 100%; font-family: var(--font-mono); font-size: .65rem;
             color: var(--primary-color); letter-spacing: .25em; margin-bottom: 20px;
             text-align: center; opacity: .7;
+            text-transform: uppercase;
         }
         .p-node {
-            background: rgba(255,0,51,0.06); border: 1px solid rgba(255,0,51,0.28);
-            border-radius: 6px; padding: 10px 14px; text-align: center;
-            min-width: 88px;
+            background: rgba(255,0,76,0.06); border: 1px solid rgba(255,0,76,0.2);
+            border-radius: 8px; padding: 12px 18px; text-align: center;
+            min-width: 100px;
+            transition: all 0.3s ease;
         }
-        .p-node-tag { font-family: var(--font-secondary); font-size: .6rem; color: #555; letter-spacing: .12em; }
-        .p-node-name { font-family: var(--font-primary); font-size: .62rem; color: #ccc; letter-spacing: .06em; margin-top: 4px; }
-        .p-arrow { color: rgba(255,0,51,0.4); padding: 0 8px; font-size: 1rem; flex-shrink: 0; }
+        .p-node:hover {
+            border-color: var(--primary-color);
+            background: rgba(255,0,76,0.1);
+            transform: translateY(-2px);
+        }
+        .p-node-tag { font-family: var(--font-mono); font-size: .6rem; color: var(--text-dim); letter-spacing: .12em; text-transform: uppercase; }
+        .p-node-name { font-family: var(--font-primary); font-size: .7rem; font-weight: 600; color: #fff; letter-spacing: .06em; margin-top: 4px; }
+        .p-arrow { color: rgba(255,0,76,0.3); padding: 0 12px; font-size: 1.2rem; flex-shrink: 0; }
 
         /* steps */
-        .steps { display: flex; flex-direction: column; }
+        .steps { display: flex; flex-direction: column; gap: 2rem; }
         .step {
-            display: grid; grid-template-columns: 72px 1fr;
-            gap: 0 24px;
+            display: grid; grid-template-columns: 80px 1fr;
+            gap: 0 32px;
             animation: fadeIn .5s ease both;
         }
         .step:nth-child(1){animation-delay:.15s} .step:nth-child(2){animation-delay:.25s}
@@ -86,43 +101,56 @@
 
         .step-line { display: flex; flex-direction: column; align-items: center; }
         .step-num {
-            width: 48px; height: 48px; border-radius: 50%;
-            border: 1px solid var(--primary-color);
+            width: 54px; height: 54px; border-radius: 16px;
+            border: 1px solid var(--border-color);
             display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-primary); font-size: .82rem;
+            font-family: var(--font-mono); font-size: 1rem;
+            font-weight: 700;
             color: var(--primary-color);
-            box-shadow: 0 0 12px rgba(255,0,51,0.2), inset 0 0 8px rgba(255,0,51,0.06);
-            background: var(--background-color); flex-shrink: 0; z-index: 1;
+            background: rgba(255,0,76,0.05); flex-shrink: 0; z-index: 1;
+            transition: all 0.3s ease;
+        }
+        .step:hover .step-num {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 20px var(--primary-glow);
+            background: var(--primary-color);
+            color: white;
         }
         .step-connector {
-            flex: 1; width: 1px; min-height: 24px;
-            background: linear-gradient(to bottom, rgba(255,0,51,0.35), rgba(255,0,51,0.04));
-            margin: 4px 0;
+            flex: 1; width: 1px; min-height: 40px;
+            background: linear-gradient(to bottom, var(--primary-color), transparent);
+            opacity: 0.3;
+            margin: 8px 0;
         }
         .step:last-child .step-connector { display: none; }
 
         .step-body {
-            background: var(--card-background);
-            border: 1px solid rgba(255,0,51,0.13);
-            border-radius: 10px; padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px; padding: 24px 28px;
             margin-bottom: 22px;
-            transition: border-color .25s, box-shadow .25s;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
         .step-body:hover {
-            border-color: rgba(255,0,51,0.36);
-            box-shadow: 0 0 20px rgba(255,0,51,0.08);
+            border-color: var(--neon-border);
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateX(5px);
         }
-        .step-tag { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .22em; color: rgba(255,0,51,.6); margin-bottom: 5px; }
-        .step-title { font-family: var(--font-primary); font-size: .9rem; color: #ddd; margin-bottom: 10px; letter-spacing: .07em; }
-        .step-desc { font-family: var(--font-secondary); font-size: .78rem; color: #5a5a5a; line-height: 1.85; }
+        .step-tag { font-family: var(--font-mono); font-size: .65rem; letter-spacing: .2em; color: var(--primary-color); margin-bottom: 8px; opacity: 0.6; text-transform: uppercase; }
+        .step-title { font-family: var(--font-primary); font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 12px; letter-spacing: -0.01em; }
+        .step-desc { font-family: var(--font-primary); font-size: .9rem; color: var(--text-dim); line-height: 1.7; }
         .step-code {
-            margin-top: 12px; padding: 11px 14px;
-            background: rgba(0,0,0,0.55); border-left: 2px solid rgba(255,0,51,0.5);
-            border-radius: 0 4px 4px 0;
-            font-family: var(--font-secondary); font-size: .73rem;
-            color: #666; line-height: 1.7;
+            margin-top: 16px; padding: 14px 18px;
+            background: rgba(0, 0, 0, 0.3); 
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--primary-color);
+            border-radius: 4px 12px 12px 4px;
+            font-family: var(--font-mono); font-size: .8rem;
+            color: #d1d1d1; line-height: 1.6;
         }
-        .hl { color: var(--primary-color); }
+        .hl { color: #ff5c8a; font-weight: 600; text-shadow: 0 0 15px rgba(255, 92, 138, 0.3); }
+        .hl-alt { color: #888; opacity: 0.8; }
 
         /* pixel visualiser */
         .pixel-section {
@@ -144,16 +172,44 @@
 
         /* security box */
         .security-box {
-            margin-top: 48px;
-            background: rgba(255,0,51,0.04); border: 1px solid rgba(255,0,51,0.18);
-            border-radius: 10px; padding: 24px 28px;
-            display: grid; grid-template-columns: 36px 1fr; gap: 14px;
+            margin-top: 64px;
+            background: rgba(255, 0, 76, 0.03); 
+            border: 1px solid var(--neon-border);
+            border-radius: 20px; padding: 32px;
+            display: grid; grid-template-columns: 48px 1fr; gap: 20px;
             animation: fadeIn .5s ease .7s both;
+            backdrop-filter: blur(10px);
         }
-        .sec-icon { font-size: 1.4rem; }
-        .sec-title { font-family: var(--font-primary); font-size: .75rem; color: var(--primary-color); letter-spacing: .12em; margin-bottom: 8px; }
-        .sec-text { font-family: var(--font-secondary); font-size: .77rem; color: #555; line-height: 1.85; }
-        .sec-text strong { color: #999; }
+        .sec-icon { font-size: 1.8rem; color: var(--primary-color); display: flex; align-items: center; justify-content: center; }
+        .sec-icon svg { width: 32px; height: 32px; }
+        .sec-title { font-family: var(--font-primary); font-size: 0.85rem; font-weight: 800; color: var(--primary-color); letter-spacing: 0.1em; margin-bottom: 12px; text-transform: uppercase; }
+        .sec-text { font-family: var(--font-primary); font-size: .95rem; color: var(--text-dim); line-height: 1.8; }
+        .sec-text strong { color: #fff; font-weight: 600; }
+
+        .step-info { padding: 8px 0 42px; }
+        .step-info h3 {
+            font-family: var(--font-primary); font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color); margin-bottom: 12px;
+            letter-spacing: -0.01em;
+        }
+        .step-info p {
+            font-family: var(--font-primary); color: var(--text-dim);
+            font-size: .9rem; line-height: 1.7;
+            max-width: 600px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .nav-bar { padding: 14px 24px; }
+            .nav-links { display: none; }
+            .split-layout { grid-template-columns: 1fr; }
+            .page-wrap { margin-top: 100px; }
+        }
 
         @media(max-width:600px){
             .nav-bar{padding:12px 20px}
@@ -271,7 +327,7 @@
         </div>
 
         <div class="security-box">
-            <div class="sec-icon">🔐</div>
+            <div class="sec-icon"><i data-lucide="shield-check"></i></div>
             <div>
                 <div class="sec-title">SECURITY MODEL</div>
                 <div class="sec-text">
@@ -297,6 +353,9 @@
             if (i < bits.length) px.innerHTML = `<span class="b">${bits[i]}</span>`;
             grid.appendChild(px);
         });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
     </script>
 </body>
 </html>
