@@ -166,11 +166,11 @@
         <a class="nav-logo" href="index.html">SHADOW FOLD</a>
         <div class="nav-links">
             <a href="index.html">ENCODE / DECODE</a>
-            <a href="how-it-works.html">HOW IT WORKS</a>
             <a href="steganalysis.html">STEGANALYSIS</a>
             <a href="benchmark.html">BENCHMARK</a>
             <a href="Dashboard.html" class="active">DASHBOARD</a>
             <a href="about.html">ABOUT</a>
+            <a href="how-it-works.html">HOW IT WORKS</a>
         </div>
     </nav>
 
@@ -341,11 +341,22 @@
                 </tr></thead><tbody>`;
 
             slice.forEach(r => {
-                const status = r.status === 'success' ? 'ok' : 'fail';
+                const pct = r.capacity ? Math.round((r.size||0) / r.capacity * 100) : 0;
+                const isPack = r.ext === 'sfpack';
+                const fileLabel = isPack && r.fileCount ? `[${r.fileCount} FILES] ${r.file}` : r.file;
+                const fileStyle = isPack ? 'color:#ff9900; font-weight:bold;' : '';
+
                 html += `<tr>
                     <td><span class="td-type ${r.type}">${r.type.toUpperCase()}</span></td>
-                    <td class="td-file" title="${r.fileName}">${r.fileName}</td>
-                    <td class="td-size">${fmtBytes(r.fileSize)}</td>
+                    <td class="td-file" title="${r.file}" style="${fileStyle}">${fileLabel}</td>
+                    <td style="color:#555">${r.ext ? r.ext.toUpperCase() : '—'}</td>
+                    <td class="td-size">${fmtBytes(r.size)}</td>
+                    <td>
+                        ${r.type === 'encode' && r.capacity ? `
+                            <span style="font-size:.7rem;color:#444">${pct}%</span>
+                            <span class="mini-bar"><span class="mini-fill" style="width:${pct}%;background:${capColor(pct)}"></span></span>
+                        ` : '<span style="color:#2a2a2a">—</span>'}
+                    </td>
                     <td class="td-status">
                         <span class="dot ${status}"></span>
                         <span style="color:${status==='ok'?'rgba(0,200,120,0.7)':'rgba(255,0,51,0.7)'}">${status.toUpperCase()}</span>
