@@ -21,9 +21,12 @@
     </nav>
     <div class="crt-scanline"></div>
     <div id="intro-screen">
-        <img src="assets/skull.png" id="skull-img">
+        <div id="intro-prompt">CLICK TO ACCESS VOID</div>
+        <div id="intro-content" style="display: none; flex-direction: column; align-items: center; gap: 18px;">
+            <img src="assets/skull.png" id="skull-img">
+            <h1 class="intro-text">ACCESSING VOID...</h1>
+        </div>
         <audio id="intro-audio" src="assets/sounds/glitch.mp3"></audio>
-        <h1 class="intro-text">ACCESSING VOID...</h1>
     </div>
     <div id="animated-bg"></div>
     <div class="container">
@@ -48,8 +51,8 @@
                             <img id="encode-image-preview" class="preview-thumb" src="" alt="Carrier Image Preview">
                         </div>
                         <div id="secret-file-drop-zone" class="drop-zone small-drop-zone">
-                            <p>Drag & Drop Secret File</p>
-                            <input type="file" id="secret-file-input" hidden>
+                            <p>Drag & Drop Secret File (PDF, Word, PPT, Audio, etc.)</p>
+                            <input type="file" id="secret-file-input" accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.zip,.rar,.mp3,.wav,.ogg,.m4a" hidden>
                             <span id="secret-file-name"></span>
                         </div>
 

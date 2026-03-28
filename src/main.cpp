@@ -26,12 +26,10 @@ std::vector<uint8_t> vecFromJSArray(const val& jsArray) {
     if (l == 0) return {};
     
     std::vector<uint8_t> v(l);
-    // Use emscripten::typed_memory_view to copy data directly from JS to C++ vector
-    // This is more robust than calling set on a global Uint8Array
-    auto view = typed_memory_view(l, v.data());
-    for (unsigned i = 0; i < l; ++i) {
-        v[i] = jsArray[i].as<uint8_t>();
-    }
+    // Use emscripten::val::call<void>("set", ...) or manual copy for speed
+    // typed_memory_view is for C++ -> JS. For JS -> C++, we can use this:
+    auto view = val(typed_memory_view(l, v.data()));
+    view.call<void>("set", jsArray);
     return v;
 }
 

@@ -142,22 +142,37 @@ document.addEventListener('DOMContentLoaded', () => {
 // INTRO SCREEN + SOUND
 // ==============================
 window.addEventListener('load', () => {
-    const audio = new Audio('assets/sounds/glitch.mp3');
-    audio.volume = 0.4;
-    setTimeout(() => {
-        audio.play().catch(() => {});
-    }, 400);
-    setTimeout(() => {
-        const intro = document.getElementById('intro-screen');
-        if (intro) intro.style.display = 'none';
-    }, 3000);
-});
+    const intro = document.getElementById('intro-screen');
+    const prompt = document.getElementById('intro-prompt');
+    const content = document.getElementById('intro-content');
+    const audio = document.getElementById('intro-audio');
 
-document.addEventListener('click', () => {
-    const audio = new Audio('assets/sounds/glitch.mp3');
-    audio.volume = 0.4;
-    audio.play().catch(() => {});
-}, { once: true });
+    if (!intro || !prompt || !content || !audio) return;
+
+    intro.addEventListener('click', () => {
+        // 1. Hide the prompt
+        prompt.style.display = 'none';
+        
+        // 2. Show the skull and "Accessing Void" text
+        content.style.display = 'flex';
+        
+        // 3. Play the voice/sound (glitch.mp3)
+        audio.volume = 0.5;
+        audio.play().catch(e => console.warn('Audio playback failed:', e));
+
+        // 4. Fade out the whole intro after a few seconds
+        setTimeout(() => {
+            intro.classList.add('fade-out');
+            // 5. Restore the cursor once the void is accessed
+            document.body.style.cursor = 'default';
+            intro.style.cursor = 'default';
+            
+            setTimeout(() => {
+                intro.style.display = 'none';
+            }, 1500); // match the fadeOut animation duration
+        }, 2500);
+    }, { once: true });
+});
 
 // ==============================
 // PASSWORD TOGGLE HELPER
@@ -350,8 +365,13 @@ async function handleEncode() {
 
         // imageBytes is a Uint8Array VIEW into imageData.data — do NOT use .buffer directly for WASM
         // We pass the Uint8Array directly to the WASM function
-        const imageBytes = new Uint8Array(imageData.data.buffer);
-        const secretBytes = new Uint8Array(await secretInput.files[0].arrayBuffer());
+        const imageBytes = new Uint8Array(imageData.data);
+        const secretFile = secretInput.files[0];
+        if (secretFile.size > 500 * 1024) {
+            alert('File too large (Max 500KB for this image/method).');
+            return;
+        }
+        const secretBytes = new Uint8Array(await secretFile.arrayBuffer());
         const ext = secretInput.files[0].name.split('.').pop().toLowerCase();
 
         // --- Detect WASM signature and call correctly ---
@@ -498,7 +518,7 @@ async function handleDecode() {
         ctx.drawImage(imageBitmap, 0, 0);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const imageBytes = new Uint8Array(imageData.data.buffer);
+        const imageBytes = new Uint8Array(imageData.data);
 
         const result = window.Module.decode_data(imageBytes, password);
 
