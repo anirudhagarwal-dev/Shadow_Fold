@@ -89,6 +89,22 @@ function detectWASMSignature() {
 // ==============================
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- Theme Toggle ---
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        themeToggle.textContent = savedTheme === 'dark' ? 'LIGHT' : 'DARK';
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeToggle.textContent = newTheme === 'dark' ? 'LIGHT' : 'DARK';
+        });
+    }
+
     // --- Tabs ---
     const tabs = document.querySelectorAll('.tab-button');
     const contents = document.querySelectorAll('.tab-content');
@@ -366,7 +382,12 @@ async function handleEncode() {
         // imageBytes is a Uint8Array VIEW into imageData.data — do NOT use .buffer directly for WASM
         // We pass the Uint8Array directly to the WASM function
         const imageBytes = new Uint8Array(imageData.data);
-        const secretBytes = new Uint8Array(await secretInput.files[0].arrayBuffer());
+        const secretFile = secretInput.files[0];
+        if (secretFile.size > 500 * 1024) {
+            alert('File too large (Max 500KB for this image/method).');
+            return;
+        }
+        const secretBytes = new Uint8Array(await secretFile.arrayBuffer());
         const ext = secretInput.files[0].name.split('.').pop().toLowerCase();
 
         // --- Detect WASM signature and call correctly ---

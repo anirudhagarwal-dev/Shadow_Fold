@@ -5,6 +5,16 @@
     --text-color: #e0e0e0;
     --font-primary: 'Orbitron', sans-serif;
     --font-secondary: 'Share Tech Mono', monospace;
+    --accent-color: rgba(255, 0, 51, 0.2);
+    --nav-background: rgba(13, 13, 13, 0.95);
+}
+
+[data-theme="light"] {
+    --background-color: #f5f5f7;
+    --card-background: rgba(255, 255, 255, 0.85);
+    --text-color: #1a1a1a;
+    --accent-color: rgba(255, 0, 51, 0.1);
+    --nav-background: rgba(245, 245, 247, 0.95);
 }
 
 * {
@@ -468,18 +478,17 @@ body {
     }
 }
 .nav-bar {
+    background: var(--nav-background);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
     position: fixed;
     top: 0;
-    left: 0;
-    right: 0;
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 40px;
-    background: rgba(13,13,13,0.94);
-    border-bottom: 1px solid rgba(255,0,51,0.18);
-    backdrop-filter: blur(8px);
+    width: 100%;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--accent-color);
 }
 
 .nav-logo {
