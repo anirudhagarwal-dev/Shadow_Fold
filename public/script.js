@@ -89,22 +89,6 @@ function detectWASMSignature() {
 // ==============================
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- Theme Toggle ---
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        themeToggle.textContent = savedTheme === 'dark' ? 'LIGHT' : 'DARK';
-
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            themeToggle.textContent = newTheme === 'dark' ? 'LIGHT' : 'DARK';
-        });
-    }
-
     // --- Tabs ---
     const tabs = document.querySelectorAll('.tab-button');
     const contents = document.querySelectorAll('.tab-content');
