@@ -163,6 +163,10 @@ window.addEventListener('load', () => {
         // 4. Fade out the whole intro after a few seconds
         setTimeout(() => {
             intro.classList.add('fade-out');
+            // 5. Restore the cursor once the void is accessed
+            document.body.style.cursor = 'default';
+            intro.style.cursor = 'default';
+            
             setTimeout(() => {
                 intro.style.display = 'none';
             }, 1500); // match the fadeOut animation duration

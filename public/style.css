@@ -352,7 +352,8 @@ body {
     align-items: center;
     gap: 18px;
     z-index: 9999;
-    cursor: pointer;
+    cursor: none; /* 🔥 Hides the cursor for a cinematic feel */
+    user-select: none; /* 🔥 Prevents text selection cursor */
 }
 
 #intro-screen.fade-out {
