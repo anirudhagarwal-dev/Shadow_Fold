@@ -1,4 +1,31 @@
 // ==============================
+// DASHBOARD TRACKING
+// ==============================
+async function trackOperation(data) {
+    console.log('[ShadowFold] Tracking:', data);
+    try {
+        const response = await fetch('/api/operations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: data.type,
+                fileName: data.file,
+                fileSize: data.size,
+                status: data.status === 'ok' ? 'success' : 'fail',
+                timestamp: new Date().toISOString()
+            })
+        });
+        if (!response.ok) {
+            console.error('[ShadowFold] Tracking failed with status:', response.status);
+        } else {
+            console.log('[ShadowFold] Tracking successful');
+        }
+    } catch (err) {
+        console.error('[ShadowFold] Failed to track operation:', err);
+    }
+}
+
+// ==============================
 // UTILITY FUNCTIONS
 // ==============================
 
@@ -372,7 +399,7 @@ async function handleEncode() {
         // --- Handle result ---
         if (!result) {
             alert('Carrier capacity exceeded — file is too large for this image. Try a larger image or smaller file.');
-            if (window.SFLog) window.SFLog.add({
+            trackOperation({
                 type: 'encode',
                 file: secretInput.files[0].name,
                 ext, size: secretBytes.length,
@@ -395,7 +422,7 @@ async function handleEncode() {
         a.click();
 
         // --- Dashboard log ---
-        if (window.SFLog) window.SFLog.add({
+        trackOperation({
             type: 'encode',
             file: secretInput.files[0].name,
             ext, size: secretBytes.length,
@@ -477,7 +504,7 @@ async function handleDecode() {
 
         if (!result) {
             alert('Frequency mismatch or image corrupted. Check your password.');
-            if (window.SFLog) window.SFLog.add({
+            trackOperation({
                 type: 'decode',
                 file: imageInput.files[0].name,
                 ext: '', size: 0,
@@ -499,7 +526,7 @@ async function handleDecode() {
         a.click();
 
         // --- Dashboard log ---
-        if (window.SFLog) window.SFLog.add({
+        trackOperation({
             type: 'decode',
             file: imageInput.files[0].name,
             ext: fileExt,

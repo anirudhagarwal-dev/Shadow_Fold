@@ -1,4 +1,29 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Tracking ---
+    async function trackOperation(data) {
+        console.log('[ShadowFold] Analysis Tracking:', data);
+        try {
+            const response = await fetch('/api/operations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: data.type,
+                    fileName: data.file,
+                    fileSize: data.size,
+                    status: data.status === 'ok' ? 'success' : 'fail',
+                    timestamp: new Date().toISOString()
+                })
+            });
+            if (!response.ok) {
+                console.error('[ShadowFold] Analysis tracking failed with status:', response.status);
+            } else {
+                console.log('[ShadowFold] Analysis tracking successful');
+            }
+        } catch (err) {
+            console.error('[ShadowFold] Failed to track operation:', err);
+        }
+    }
+
     // --- UI Elements ---
     const input = document.getElementById('analysis-input');
     const dropZone = document.getElementById('analysis-drop-zone');
@@ -72,6 +97,14 @@ document.addEventListener('DOMContentLoaded', () => {
             infoRes.textContent = `${img.width} x ${img.height}`;
             analyzePlane(currentPlane); 
             performRealProfiling(img); // Perform actual statistical analysis
+            
+            // Track the analysis task
+            trackOperation({
+                type: 'steganalysis',
+                file: file.name,
+                size: file.size,
+                status: 'ok'
+            });
         };
     }
 
