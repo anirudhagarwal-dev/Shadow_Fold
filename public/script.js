@@ -350,7 +350,7 @@ async function handleEncode() {
 
         // imageBytes is a Uint8Array VIEW into imageData.data — do NOT use .buffer directly for WASM
         // We pass the Uint8Array directly to the WASM function
-        const imageBytes = new Uint8Array(imageData.data.buffer);
+        const imageBytes = new Uint8Array(imageData.data);
         const secretBytes = new Uint8Array(await secretInput.files[0].arrayBuffer());
         const ext = secretInput.files[0].name.split('.').pop().toLowerCase();
 
@@ -498,7 +498,7 @@ async function handleDecode() {
         ctx.drawImage(imageBitmap, 0, 0);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const imageBytes = new Uint8Array(imageData.data.buffer);
+        const imageBytes = new Uint8Array(imageData.data);
 
         const result = window.Module.decode_data(imageBytes, password);
 
