@@ -162,6 +162,31 @@
              selectedKB = kb; 
          } 
   
+         // --- Tracking ---
+          async function trackOperation(data) {
+               console.log('[ShadowFold] Benchmark Tracking:', data);
+               try {
+                   const response = await fetch('/api/operations', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({
+                           type: data.type,
+                           fileName: data.file,
+                           fileSize: data.size,
+                           status: data.status === 'ok' ? 'success' : 'fail',
+                           timestamp: new Date().toISOString()
+                       })
+                   });
+                   if (!response.ok) {
+                       console.error('[ShadowFold] Benchmark tracking failed with status:', response.status);
+                   } else {
+                       console.log('[ShadowFold] Benchmark tracking successful');
+                   }
+               } catch (err) {
+                   console.error('[ShadowFold] Failed to track operation:', err);
+               }
+           }
+
          // Pure JS LSB embed (same algorithm as C++, no WASM) 
          function jsLSBEmbed(imageBytes, payloadBytes) { 
              const out = new Uint8Array(imageBytes); 
@@ -247,6 +272,14 @@
              document.getElementById('js-bar').style.width = ((jsMs / maxMs) * 100) + '%'; 
              document.getElementById('speedup-num').textContent = speedup + '×'; 
   
+             // Track the benchmark task
+             trackOperation({
+                 type: 'benchmark',
+                 file: `Image (1024x1024) - Payload ${selectedKB}KB`,
+                 size: payloadSize,
+                 status: 'ok'
+             });
+
              setProgress(100, 'COMPLETE'); 
              await sleep(200); 
   
