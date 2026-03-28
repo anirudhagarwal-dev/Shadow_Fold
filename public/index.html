@@ -13,7 +13,9 @@
         <div class="nav-links">
             <a href="index.html" class="active">ENCODE / DECODE</a>
             <a href="how-it-works.html">HOW IT WORKS</a>
-            <a href="dashboard.html">DASHBOARD</a>
+            <a href="steganalysis.html">STEGANALYSIS</a>
+            <a href="benchmark.html">BENCHMARK</a>
+            <a href="Dashboard.html">DASHBOARD</a>
             <a href="about.html">ABOUT</a>
         </div>
     </nav>
@@ -50,6 +52,21 @@
                             <input type="file" id="secret-file-input" hidden>
                             <span id="secret-file-name"></span>
                         </div>
+
+                        <div id="dual-layer-toggle" style="margin-top: 10px; cursor: pointer; font-family: var(--font-secondary); font-size: 0.65rem; color: #555; text-align: center; border: 1px solid rgba(255,0,51,0.1); padding: 5px; border-radius: 4px;">
+                            [ + ] ADD DECOY LAYER (OPTIONAL)
+                        </div>
+
+                        <div id="decoy-section" style="display:none; margin-top: 15px; border-top: 1px dashed rgba(255,0,51,0.2); padding-top: 15px;">
+                            <div id="decoy-file-drop-zone" class="drop-zone small-drop-zone" style="border-color: rgba(255,255,255,0.05);">
+                                <p>Drag & Drop Decoy File</p>
+                                <input type="file" id="decoy-file-input" hidden>
+                                <span id="decoy-file-name"></span>
+                            </div>
+                            <div class="password-container" style="margin-top: 10px;">
+                                <input type="password" id="decoy-password" placeholder="Decoy Frequency (Password)">
+                            </div>
+                        </div>
                     </div>
                     <div class="panel right-panel">
                         <h3>THE VOID</h3>
@@ -58,7 +75,36 @@
                             <button id="encode-toggle-password">SHOW</button>
                         </div>
                         <button id="encode-button" class="action-button">FOLD REALITY</button>
-                        <div id="encode-stats" class="stats-container"></div>
+                        
+                        <!-- Capacity Indicator --> 
+                        <div id="capacity-section" style="display:none; margin-bottom:16px;"> 
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"> 
+                                <span style="font-family:var(--font-secondary);font-size:0.62rem;letter-spacing:0.18em;color:#444;text-transform:uppercase;">Image Capacity</span> 
+                                <span style="display:flex;gap:10px;align-items:center;"> 
+                                    <span id="capacity-pct" style="font-family:var(--font-primary);font-size:0.75rem;color:var(--primary-color);">0%</span> 
+                                    <span id="capacity-max" style="font-family:var(--font-secondary);font-size:0.65rem;color:#383838;"></span> 
+                                </span> 
+                            </div> 
+                            <div style="background:rgba(255,0,51,0.08);border-radius:4px;height:6px;border:1px solid rgba(255,0,51,0.15);overflow:hidden;"> 
+                                <div id="capacity-bar" style="height:100%;border-radius:4px;width:0%;transition:width 0.4s ease,background 0.3s;"></div> 
+                            </div> 
+                            <div style="margin-top:4px;"> 
+                                <span id="capacity-used" style="font-family:var(--font-secondary);font-size:0.62rem;color:#333;"></span> 
+                            </div> 
+                        </div> 
+                    
+                        <!-- Encode Stats --> 
+                        <div id="encode-stats" class="stats-container"></div> 
+                    
+                        <!-- Pixel Heatmap --> 
+                        <div id="heatmap-section" style="display:none;margin-top:16px;"> 
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"> 
+                                <span style="font-family:var(--font-secondary);font-size:0.62rem;letter-spacing:0.18em;color:#444;text-transform:uppercase;">Pixel Modification Map</span> 
+                                <span id="heatmap-label" style="font-family:var(--font-secondary);font-size:0.62rem;color:#555;"></span> 
+                            </div> 
+                            <canvas id="heatmap-canvas" style="width:100%;height:auto;max-height:160px;object-fit:contain;border-radius:6px;border:1px solid rgba(255,0,51,0.2);display:block;"></canvas> 
+                            <p style="font-family:var(--font-secondary);font-size:0.6rem;color:#333;margin-top:5px;text-align:center;">RED = modified pixels · DARK = unmodified · PRNG-scattered, not sequential</p> 
+                        </div>
                     </div>
                 </div>
             </main>

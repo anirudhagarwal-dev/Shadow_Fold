@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steganalysis – Shadow Fold</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { overflow-y: auto; align-items: flex-start; padding-top: 80px; }
+        .page-wrap { position: relative; z-index: 1; max-width: 1200px; width: 95vw; margin: 0 auto 70px; }
+        
+        .section-header { 
+            margin: 40px 0 20px; 
+            padding-bottom: 10px; 
+            border-bottom: 1px solid rgba(255,0,51,0.15);
+            font-family: var(--font-primary);
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        /* Live Analysis Grid */
+        .analysis-grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; margin-bottom: 40px; }
+        .control-panel { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 12px; padding: 24px; height: fit-content; }
+        .result-panel { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 12px; padding: 24px; min-height: 500px; position: relative; }
+        
+        /* Bit Planes */
+        .bit-plane-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .bit-plane-card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px; text-align: center; }
+        .bit-plane-card canvas { width: 100%; height: auto; border-radius: 4px; border: 1px solid rgba(255,0,51,0.1); margin-top: 8px; image-rendering: pixelated; }
+        .bit-plane-card span { font-family: var(--font-secondary); font-size: 0.65rem; color: #666; letter-spacing: 0.1em; text-transform: uppercase; }
+
+        .analysis-btn {
+            width: 100%; padding: 12px; margin-top: 20px;
+            background: rgba(255,0,51,0.06); border: 1px solid rgba(255,0,51,0.3);
+            color: var(--primary-color); font-family: var(--font-primary); font-size: 0.75rem;
+            letter-spacing: 0.15em; border-radius: 4px; cursor: pointer; transition: all 0.3s;
+        }
+        .analysis-btn:hover:not(:disabled) { background: rgba(255,0,51,0.15); box-shadow: 0 0 15px rgba(255,0,51,0.2); }
+        .analysis-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .plane-select { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .plane-option {
+            padding: 8px; border: 1px solid rgba(255,255,255,0.05); border-radius: 4px;
+            text-align: center; font-family: var(--font-secondary); font-size: 0.65rem;
+            color: #555; cursor: pointer; transition: all 0.2s;
+        }
+        .plane-option.active { border-color: var(--primary-color); color: var(--primary-color); background: rgba(255,0,51,0.05); }
+
+        #main-analysis-canvas { width: 100%; height: auto; max-height: 70vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(255,0,51,0.15); display: none; }
+        .empty-state { height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #333; font-family: var(--font-secondary); text-align: center; }
+        
+        /* Demo Section */
+        .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .demo-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 10px; padding: 24px; }
+        .demo-card.danger-card { border-color: rgba(255,0,51,0.3); }
+        .demo-card.safe-card { border-color: rgba(0,200,120,0.25); }
+        .card-title { font-family: var(--font-primary); font-size: .78rem; letter-spacing: .15em; margin-bottom: 6px; }
+        .danger-card .card-title { color: rgba(255,0,51,0.9); }
+        .safe-card .card-title { color: rgba(0,200,120,0.85); }
+        .card-sub { font-family: var(--font-secondary); font-size: .66rem; color: #444; letter-spacing: .06em; margin-bottom: 16px; line-height: 1.6; }
+        
+        canvas.chart { width: 100%; height: 120px; display: block; border-radius: 6px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.04); }
+        .chi-score { display: flex; justify-content: space-around; margin-top: 14px; }
+        .chi-val { text-align: center; }
+        .chi-num { font-family: var(--font-primary); font-size: 1.3rem; margin-bottom: 4px; }
+        .chi-label { font-family: var(--font-secondary); font-size: .58rem; letter-spacing: .12em; color: #444; text-transform: uppercase; }
+        .chi-detected { color: rgba(255,0,51,0.9); }
+        .chi-safe { color: rgba(0,200,120,0.85); }
+        
+        .verdict { margin-top: 14px; padding: 10px 14px; border-radius: 5px; font-family: var(--font-secondary); font-size: .68rem; letter-spacing: .06em; line-height: 1.5; }
+        .verdict.detected { background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.25); color: rgba(255,0,51,0.8); }
+        .verdict.safe { background: rgba(0,200,120,0.06); border: 1px solid rgba(0,200,120,0.2); color: rgba(0,200,120,0.8); }
+        .verdict.pending { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: #444; }
+
+        .explainer { background: var(--card-background); border: 1px solid rgba(255,0,51,0.1); border-radius: 10px; padding: 28px 32px; }
+        .explainer h2 { font-family: var(--font-primary); font-size: .82rem; color: var(--primary-color); letter-spacing: .15em; margin-bottom: 16px; }
+        .explainer p { font-family: var(--font-secondary); font-size: .74rem; color: #555; line-height: 1.85; margin-bottom: 12px; }
+        .explainer code { background: rgba(255,0,51,0.1); padding: 2px 7px; border-radius: 3px; color: rgba(255,120,120,0.9); font-size: .7rem; }
+    </style>
+</head>
+<body>
+    <div class="crt-scanline"></div>
+    <div id="animated-bg"></div>
+
+    <nav class="nav-bar">
+        <a class="nav-logo" href="index.html">SHADOW FOLD</a>
+        <div class="nav-links">
+            <a href="index.html">ENCODE / DECODE</a>
+            <a href="how-it-works.html">HOW IT WORKS</a>
+            <a href="steganalysis.html" class="active">STEGANALYSIS</a>
+            <a href="benchmark.html">BENCHMARK</a>
+            <a href="Dashboard.html">DASHBOARD</a>
+            <a href="about.html">ABOUT</a>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <div class="page-header" style="text-align:center; margin-bottom:40px;">
+            <h1 style="font-family:var(--font-primary); color:var(--primary-color); letter-spacing:0.2em;">STEGANALYSIS HUB</h1>
+            <p style="color:#666; font-size:0.8rem; margin-top:10px;">EXAMINE SIGNALS · CALCULATE ENTROPY · EXPOSE THE VOID</p>
+        </div>
+
+        <!-- SECTION 1: LIVE ANALYSIS -->
+        <div class="section-header">01 // LIVE SIGNAL ANALYSIS</div>
+        <div class="analysis-grid">
+            <aside class="control-panel">
+                <h3 style="font-family:var(--font-primary); font-size:0.75rem; color:#888; letter-spacing:0.1em; margin-bottom:20px;">SIGNAL INPUT</h3>
+                <div id="analysis-drop-zone" class="drop-zone" style="padding:30px 15px; border-style:dashed;">
+                    <p style="font-size:0.65rem;">Drop Image for Analysis</p>
+                    <input type="file" id="analysis-input" accept="image/png, image/bmp" hidden>
+                </div>
+                <div id="image-info" style="margin-top:20px; display:none;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-family:var(--font-secondary); font-size:0.6rem; color:#444;">DIMENSIONS</span>
+                        <span id="info-res" style="font-family:var(--font-primary); font-size:0.65rem; color:#888;">0 x 0</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="font-family:var(--font-secondary); font-size:0.6rem; color:#444;">FILE SIZE</span>
+                        <span id="info-size" style="font-family:var(--font-primary); font-size:0.65rem; color:#888;">0 KB</span>
+                    </div>
+                </div>
+
+                <h3 style="font-family:var(--font-primary); font-size:0.75rem; color:#888; letter-spacing:0.1em; margin:30px 0 15px;">BIT PLANE TOOLS</h3>
+                <div class="plane-select">
+                    <div class="plane-option active" data-plane="0">BIT 0 (LSB)</div>
+                    <div class="plane-option" data-plane="1">BIT 1</div>
+                    <div class="plane-option" data-plane="2">BIT 2</div>
+                    <div class="plane-option" data-plane="3">BIT 3</div>
+                    <div class="plane-option" data-plane="4">BIT 4</div>
+                    <div class="plane-option" data-plane="7">BIT 7 (MSB)</div>
+                </div>
+                <button id="btn-analyze" class="analysis-btn" disabled>EXTRACT BIT PLANE</button>
+                <button id="btn-full-scan" class="analysis-btn" style="margin-top:10px; border-color:rgba(255,255,255,0.1); color:#666;" disabled>FULL 8-BIT SCAN</button>
+            </aside>
+
+            <main class="result-panel">
+                <div id="analysis-empty" class="empty-state">
+                    <div style="font-size:3rem; margin-bottom:20px; opacity:0.1;">[ ! ]</div>
+                    <p>NO SIGNAL DETECTED.<br>UPLOAD AN IMAGE TO BEGIN ANALYSIS.</p>
+                </div>
+                <div id="analysis-result" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h3 id="result-title" style="font-family:var(--font-primary); font-size:0.8rem; color:var(--primary-color); letter-spacing:0.1em;">BIT 0 (LSB) EXTRACTION</h3>
+                        <button onclick="downloadAnalysis()" style="background:none; border:none; color:#555; font-family:var(--font-secondary); font-size:0.6rem; cursor:pointer; letter-spacing:0.1em;">[ DOWNLOAD MAP ]</button>
+                    </div>
+                    <canvas id="main-analysis-canvas"></canvas>
+                    <div id="full-scan-results" class="bit-plane-grid" style="display:none;"></div>
+                </div>
+            </main>
+        </div>
+
+        <!-- SECTION 2: STATISTICAL PROFILING -->
+        <div class="section-header">02 // STATISTICAL PROFILING</div>
+        <div class="demo-grid" style="grid-template-columns: 1fr;">
+            <div class="demo-card" id="real-stats-card" style="border-color: rgba(255,255,255,0.05);">
+                <div class="card-title">SIGNAL ENTROPY ANALYSIS</div>
+                <div class="card-sub">Chi-Square test performed on the Least Significant Bit (LSB) pairs of the uploaded image. High scores indicate artificial balancing typical of sequential embedding.</div>
+                
+                <div style="display:grid; grid-template-columns: 1fr 300px; gap:40px; align-items:center;">
+                    <div>
+                        <canvas id="chart-real" class="chart" style="height:160px;"></canvas>
+                        <div style="font-family:var(--font-secondary); font-size:0.58rem; color:#333; text-align:center; margin-top:10px;">LSB pair frequency distribution (Real Signal)</div>
+                    </div>
+                    <div>
+                        <div class="chi-score" style="margin-bottom:20px;">
+                            <div class="chi-val">
+                                <div class="chi-num" id="chi-real" style="color:#888;">—</div>
+                                <div class="chi-label">Chi-Square</div>
+                            </div>
+                            <div class="chi-val">
+                                <div class="chi-num" id="pval-real" style="color:#888;">—</div>
+                                <div class="chi-label">P-Value</div>
+                            </div>
+                        </div>
+                        <div class="verdict pending" id="verdict-real">Upload an image to profile entropy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: COMPARATIVE DEMO -->
+        <div class="section-header">03 // COMPARATIVE SIMULATION</div>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <button class="run-btn" onclick="runSimulation()">▶ RUN SIMULATION</button>
+        </div>
+        <div class="demo-grid">
+            <div class="demo-card danger-card">
+                <div class="card-title">⚠ SEQUENTIAL LSB</div>
+                <div class="card-sub">Bits written pixel-by-pixel. Creates a detectable statistical boundary between the embedded region and the rest of the image.</div>
+                <canvas id="chart-sequential" class="chart"></canvas>
+                <div class="chi-score">
+                    <div class="chi-val">
+                        <div class="chi-num chi-detected" id="chi-seq">—</div>
+                        <div class="chi-label">Chi-Square</div>
+                    </div>
+                    <div class="chi-val">
+                        <div class="chi-num chi-detected" id="pval-seq">—</div>
+                        <div class="chi-label">P-Value</div>
+                    </div>
+                </div>
+                <div class="verdict pending" id="verdict-seq">Ready for simulation</div>
+            </div>
+
+            <div class="demo-card safe-card">
+                <div class="card-title">✓ SHADOW FOLD (PRNG)</div>
+                <div class="card-sub">Bits scattered via password-seeded shuffle. Statistically identical to an unmodified photo.</div>
+                <canvas id="chart-prng" class="chart"></canvas>
+                <div class="chi-score">
+                    <div class="chi-val">
+                        <div class="chi-num chi-safe" id="chi-prng">—</div>
+                        <div class="chi-label">Chi-Square</div>
+                    </div>
+                    <div class="chi-val">
+                        <div class="chi-num chi-safe" id="pval-prng">—</div>
+                        <div class="chi-label">P-Value</div>
+                    </div>
+                </div>
+                <div class="verdict pending" id="verdict-prng">Ready for simulation</div>
+            </div>
+        </div>
+
+        <div class="explainer">
+            <h2>TECHNICAL NOTES</h2>
+            <p>In a natural image, adjacent byte values (called PoV pairs: <code>0↔1</code>, <code>2↔3</code>, <code>4↔5</code>...) occur with roughly equal frequency. Changing the LSB of a byte flips it between a pair. Sequential embedding balances these pairs artificially, creating a "flat" distribution that Chi-Square analysis detects immediately.</p>
+            <p>Shadow Fold uses a password-seeded <strong>Mersenne Twister</strong> to shuffle pixel channels before writing. This scatters the data across the entire image, ensuring no detectable boundary exists. The result is statistically indistinguishable from natural sensor noise.</p>
+        </div>
+    </div>
+
+    <script src="steganalysis.js"></script>
+</body>
+</html>

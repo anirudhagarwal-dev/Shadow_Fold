@@ -1,0 +1,264 @@
+<!DOCTYPE html> 
+ <html lang="en"> 
+ <head> 
+     <meta charset="UTF-8"> 
+     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+     <title>Benchmark – Shadow Fold</title> 
+     <link rel="stylesheet" href="style.css"> 
+     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
+     <style> 
+         body { overflow-y: auto; align-items: flex-start; padding-top: 80px; } 
+         .page-wrap { position: relative; z-index: 1; max-width: 900px; width: 90vw; margin: 0 auto 70px; } 
+         .page-header { text-align: center; margin-bottom: 48px; animation: fadeIn .6s ease; } 
+         .page-header h1 { font-family: var(--font-primary); font-size: clamp(1.2rem,3.5vw,1.8rem); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color); letter-spacing: .15em; } 
+         .page-header p { font-family: var(--font-secondary); color: #555; font-size: .78rem; letter-spacing: .06em; margin-top: 12px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.8; } 
+  
+         .nav-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 200; display: flex; align-items: center; justify-content: space-between; padding: 14px 40px; background: rgba(13,13,13,0.94); border-bottom: 1px solid rgba(255,0,51,0.18); backdrop-filter: blur(8px); } 
+         .nav-logo { font-family: var(--font-primary); font-size: .88rem; color: var(--primary-color); letter-spacing: .2em; text-decoration: none; text-shadow: 0 0 10px var(--primary-color); } 
+         .nav-links { display: flex; gap: 28px; } 
+         .nav-links a { font-family: var(--font-secondary); font-size: .72rem; color: #666; text-decoration: none; letter-spacing: .12em; text-transform: uppercase; transition: color .2s; } 
+         .nav-links a:hover, .nav-links a.active { color: var(--primary-color); } 
+  
+         .bench-setup { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 10px; padding: 28px; margin-bottom: 28px; } 
+         .bench-setup h2 { font-family: var(--font-primary); font-size: .78rem; color: #888; letter-spacing: .15em; margin-bottom: 20px; } 
+         .size-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; } 
+         .size-btn { padding: 10px; border: 1px solid rgba(255,0,51,0.2); border-radius: 4px; background: transparent; color: #555; font-family: var(--font-secondary); font-size: .72rem; cursor: pointer; transition: all .2s; text-align: center; } 
+         .size-btn:hover { border-color: rgba(255,0,51,0.5); color: #888; } 
+         .size-btn.active { border-color: var(--primary-color); color: var(--primary-color); background: rgba(255,0,51,0.05); } 
+         .run-btn { width: 100%; padding: 14px; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); font-family: var(--font-primary); font-size: .9rem; letter-spacing: .15em; border-radius: 5px; cursor: pointer; transition: all .3s; text-shadow: 0 0 5px var(--primary-color); } 
+         .run-btn:hover:not(:disabled) { background: var(--primary-color); color: #0d0d0d; } 
+         .run-btn:disabled { opacity: .4; cursor: not-allowed; } 
+  
+         .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; } 
+         .result-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.1); border-radius: 10px; padding: 24px; } 
+         .result-card.wasm-card { border-color: rgba(0,200,120,0.2); } 
+         .result-card.js-card { border-color: rgba(255,140,0,0.2); } 
+         .rc-title { font-family: var(--font-primary); font-size: .75rem; letter-spacing: .15em; margin-bottom: 4px; } 
+         .wasm-card .rc-title { color: rgba(0,200,120,0.9); } 
+         .js-card .rc-title { color: rgba(255,140,0,0.85); } 
+         .rc-sub { font-family: var(--font-secondary); font-size: .62rem; color: #444; margin-bottom: 20px; letter-spacing: .08em; } 
+         .rc-time { font-family: var(--font-primary); font-size: 2rem; letter-spacing: .05em; margin-bottom: 4px; } 
+         .wasm-card .rc-time { color: rgba(0,200,120,0.9); } 
+         .js-card .rc-time { color: rgba(255,140,0,0.85); } 
+         .rc-label { font-family: var(--font-secondary); font-size: .62rem; color: #333; letter-spacing: .12em; text-transform: uppercase; } 
+         .rc-bar-wrap { margin-top: 16px; background: rgba(255,255,255,0.03); border-radius: 4px; height: 6px; overflow: hidden; } 
+         .rc-bar { height: 100%; border-radius: 4px; transition: width 0.8s ease; width: 0%; } 
+         .wasm-bar { background: rgba(0,200,120,0.7); } 
+         .js-bar { background: rgba(255,140,0,0.7); } 
+  
+         .speedup-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.2); border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 28px; } 
+         .speedup-num { font-family: var(--font-primary); font-size: 3rem; color: var(--primary-color); text-shadow: 0 0 20px rgba(255,0,51,0.4); margin-bottom: 6px; } 
+         .speedup-label { font-family: var(--font-secondary); font-size: .72rem; color: #555; letter-spacing: .15em; text-transform: uppercase; } 
+  
+         .progress-wrap { display: none; text-align: center; padding: 20px; } 
+         .progress-text { font-family: var(--font-secondary); font-size: .75rem; color: #555; letter-spacing: .1em; } 
+         .progress-bar-outer { margin: 14px auto; width: 300px; height: 4px; background: rgba(255,0,51,0.1); border-radius: 2px; } 
+         .progress-bar-inner { height: 100%; border-radius: 2px; background: var(--primary-color); width: 0%; transition: width .1s; } 
+  
+         .explainer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; } 
+         .explainer-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.08); border-radius: 10px; padding: 20px 24px; } 
+         .explainer-card h3 { font-family: var(--font-primary); font-size: .72rem; color: var(--primary-color); letter-spacing: .15em; margin-bottom: 12px; } 
+         .explainer-card p { font-family: var(--font-secondary); font-size: .72rem; color: #555; line-height: 1.8; } 
+         .explainer-card code { background: rgba(255,0,51,0.1); padding: 2px 6px; border-radius: 3px; color: rgba(255,120,120,0.9); font-size: .68rem; } 
+  
+         .wasm-status { font-family: var(--font-secondary); font-size: .65rem; color: #444; text-align: center; margin-top: 10px; letter-spacing: .1em; } 
+         .wasm-status.ready { color: rgba(0,200,120,0.7); } 
+         .wasm-status.loading { color: rgba(255,140,0,0.7); } 
+  
+         @media(max-width:700px) { .results-grid{grid-template-columns:1fr} .size-grid{grid-template-columns:repeat(2,1fr)} .explainer-grid{grid-template-columns:1fr} .nav-links{display:none} } 
+     </style> 
+ </head> 
+ <body> 
+     <div class="crt-scanline"></div> 
+     <div id="animated-bg"></div> 
+  
+     <nav class="nav-bar"> 
+         <a class="nav-logo" href="index.html">SHADOW FOLD</a> 
+         <div class="nav-links"> 
+             <a href="index.html">ENCODE / DECODE</a> 
+             <a href="how-it-works.html">HOW IT WORKS</a> 
+             <a href="steganalysis.html">STEGANALYSIS</a> 
+             <a href="benchmark.html" class="active">BENCHMARK</a> 
+             <a href="Dashboard.html">DASHBOARD</a> 
+             <a href="about.html">ABOUT</a> 
+         </div> 
+     </nav> 
+  
+     <div class="page-wrap"> 
+         <div class="page-header"> 
+             <h1>WASM vs JS BENCHMARK</h1> 
+             <p>The same LSB steganography operation. Two runtimes. The C++ engine compiled to WebAssembly vs a pure JavaScript implementation. Watch the difference.</p> 
+             <div class="wasm-status loading" id="wasm-status">⟳ LOADING WASM ENGINE...</div> 
+         </div> 
+  
+         <div class="bench-setup"> 
+             <h2>PAYLOAD SIZE</h2> 
+             <div class="size-grid"> 
+                 <button class="size-btn" onclick="selectSize(this, 50)">50 KB</button> 
+                 <button class="size-btn active" onclick="selectSize(this, 200)">200 KB</button> 
+                 <button class="size-btn" onclick="selectSize(this, 500)">500 KB</button> 
+                 <button class="size-btn" onclick="selectSize(this, 1000)">1 MB</button> 
+             </div> 
+             <button class="run-btn" id="run-btn" onclick="runBenchmark()" disabled>▶ RUN BENCHMARK</button> 
+         </div> 
+  
+         <div class="progress-wrap" id="progress-wrap"> 
+             <div class="progress-text" id="progress-text">INITIALIZING...</div> 
+             <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div> 
+         </div> 
+  
+         <div class="results-grid" id="results-grid" style="display:none;"> 
+             <div class="result-card wasm-card"> 
+                 <div class="rc-title">C++ → WASM</div> 
+                 <div class="rc-sub">Compiled native code via Emscripten</div> 
+                 <div class="rc-time" id="wasm-time">—</div> 
+                 <div class="rc-label">milliseconds</div> 
+                 <div class="rc-bar-wrap"><div class="rc-bar wasm-bar" id="wasm-bar"></div></div> 
+             </div> 
+             <div class="result-card js-card"> 
+                 <div class="rc-title">PURE JAVASCRIPT</div> 
+                 <div class="rc-sub">Same algorithm, interpreted JS engine</div> 
+                 <div class="rc-time" id="js-time">—</div> 
+                 <div class="rc-label">milliseconds</div> 
+                 <div class="rc-bar-wrap"><div class="rc-bar js-bar" id="js-bar"></div></div> 
+             </div> 
+         </div> 
+  
+         <div class="speedup-card" id="speedup-card" style="display:none;"> 
+             <div class="speedup-num" id="speedup-num">—</div> 
+             <div class="speedup-label">× faster with WebAssembly</div> 
+         </div> 
+  
+         <div class="explainer-grid"> 
+             <div class="explainer-card"> 
+                 <h3>WHY C++ / WASM WINS</h3> 
+                 <p>The LSB embedding loop touches every byte of the image. In JavaScript, each array access goes through the JS engine's type checking and bounds checking. In C++ compiled to Wasm, it's a direct memory operation — no overhead. For megapixel images this compounds to a significant difference.</p> 
+             </div> 
+             <div class="explainer-card"> 
+                 <h3>HOW IT'S MEASURED</h3> 
+                 <p>Both implementations perform identical work: generate a random payload of the selected size, then embed it into a synthetic <code>1024×1024</code> RGBA image using <code>std::mt19937</code> PRNG scatter (Wasm) or the equivalent LCG in JS. Timing uses <code>performance.now()</code> around the core loop only — no I/O.</p> 
+             </div> 
+         </div> 
+     </div> 
+  
+     <script src="build/steganography.js"></script> 
+     <script> 
+         let selectedKB = 200; 
+         let wasmReady = false; 
+  
+         // Wait for WASM 
+         if (window.Module) { 
+             Module.onRuntimeInitialized = () => { 
+                 wasmReady = true; 
+                 document.getElementById('wasm-status').textContent = '✓ WASM ENGINE READY'; 
+                 document.getElementById('wasm-status').className = 'wasm-status ready'; 
+                 document.getElementById('run-btn').disabled = false; 
+             }; 
+         } 
+  
+         function selectSize(btn, kb) { 
+             document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active')); 
+             btn.classList.add('active'); 
+             selectedKB = kb; 
+         } 
+  
+         // Pure JS LSB embed (same algorithm as C++, no WASM) 
+         function jsLSBEmbed(imageBytes, payloadBytes) { 
+             const out = new Uint8Array(imageBytes); 
+             // Simple LCG shuffle (approximates mt19937 for benchmark purposes) 
+             const n = out.length; 
+             const indices = new Int32Array(n); 
+             for (let i = 0; i < n; i++) indices[i] = i; 
+             let seed = 0x12345678; 
+             for (let i = n - 1; i > 0; i--) { 
+                 seed = (Math.imul(1664525, seed) + 1013904223) >>> 0; 
+                 const j = seed % (i + 1); 
+                 const tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp; 
+             } 
+             const totalBits = payloadBytes.length * 8; 
+             let rng = 0xABCDEF01; 
+             for (let i = 0; i < totalBits; i++) { 
+                 const bit = (payloadBytes[i >> 3] >> (7 - (i & 7))) & 1; 
+                 out[indices[i]] = (out[indices[i]] & 0xFE) | bit; 
+             } 
+             return out; 
+         } 
+  
+         function setProgress(pct, text) { 
+             document.getElementById('progress-bar').style.width = pct + '%'; 
+             document.getElementById('progress-text').textContent = text; 
+         } 
+  
+         async function runBenchmark() { 
+             if (!wasmReady) { alert('WASM not ready'); return; } 
+  
+             document.getElementById('run-btn').disabled = true; 
+             document.getElementById('results-grid').style.display = 'none'; 
+             document.getElementById('speedup-card').style.display = 'none'; 
+             document.getElementById('progress-wrap').style.display = 'block'; 
+  
+             const payloadSize = selectedKB * 1024; 
+             const imageSize = 1024 * 1024 * 4; // 1024x1024 RGBA 
+  
+             setProgress(10, 'GENERATING TEST DATA...'); 
+             await sleep(50); 
+  
+             // Generate fake image 
+             const imageBytes = new Uint8Array(imageSize); 
+             for (let i = 0; i < imageSize; i++) { 
+                 imageBytes[i] = (i * 6700417 + 12345) & 0xFF; 
+             } 
+  
+             // Generate payload 
+             const payload = new Uint8Array(payloadSize); 
+             for (let i = 0; i < payloadSize; i++) { 
+                 payload[i] = (i * 1664525 + 1013904223) & 0xFF; 
+             } 
+             const payloadExt = 'bin'; 
+             const payloadPassword = 'benchmark_test_key'; 
+  
+             setProgress(25, 'RUNNING WASM BENCHMARK...'); 
+             await sleep(50); 
+  
+             // WASM benchmark 
+             const wasmStart = performance.now(); 
+             const wasmResult = window.Module.encode_data(imageBytes, payload, payloadExt, payloadPassword); 
+             const wasmEnd = performance.now(); 
+             const wasmMs = wasmEnd - wasmStart; 
+  
+             setProgress(60, 'RUNNING JS BENCHMARK...'); 
+             await sleep(50); 
+  
+             // JS benchmark 
+             const jsStart = performance.now(); 
+             const jsResult = jsLSBEmbed(imageBytes, payload); 
+             const jsEnd = performance.now(); 
+             const jsMs = jsEnd - jsStart; 
+  
+             setProgress(90, 'CALCULATING RESULTS...'); 
+             await sleep(50); 
+  
+             const speedup = (jsMs / wasmMs).toFixed(1); 
+             const maxMs = Math.max(wasmMs, jsMs); 
+  
+             document.getElementById('wasm-time').textContent = wasmMs.toFixed(1); 
+             document.getElementById('js-time').textContent = jsMs.toFixed(1); 
+             document.getElementById('wasm-bar').style.width = ((wasmMs / maxMs) * 100) + '%'; 
+             document.getElementById('js-bar').style.width = ((jsMs / maxMs) * 100) + '%'; 
+             document.getElementById('speedup-num').textContent = speedup + '×'; 
+  
+             setProgress(100, 'COMPLETE'); 
+             await sleep(200); 
+  
+             document.getElementById('progress-wrap').style.display = 'none'; 
+             document.getElementById('results-grid').style.display = 'grid'; 
+             document.getElementById('speedup-card').style.display = 'block'; 
+             document.getElementById('run-btn').disabled = false; 
+         } 
+  
+         function sleep(ms) { 
+             return new Promise(resolve => setTimeout(resolve, ms)); 
+         } 
+     </script> 
+ </body> 
+ </html>
