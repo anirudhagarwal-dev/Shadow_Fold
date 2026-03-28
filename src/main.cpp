@@ -44,15 +44,16 @@ val encode_data(val image_data, val file_data, const std::string& file_extension
 
     std::cout << "[C++] Encoding started. Original file size: " << file_bytes.size() << " bytes, extension: ." << file_extension << std::endl;
 
-    // 1. Generate a deterministic 256-bit key and 128-bit IV from the password
+    // 1. Generate a deterministic 128-bit key and 128-bit IV from the password
+    // Note: tiny-aes is configured for AES128 (16-byte key)
     std::seed_seq seed(password.begin(), password.end());
-    std::vector<uint32_t> key_material(12); // 8 for key (32B), 4 for IV (16B)
+    std::vector<uint32_t> key_material(8); // 4 for key (16B), 4 for IV (16B)
     seed.generate(key_material.begin(), key_material.end());
 
-    uint8_t key[32];
+    uint8_t key[16];
     uint8_t iv[16];
-    std::memcpy(key, key_material.data(), 32);
-    std::memcpy(iv, key_material.data() + 8, 16);
+    std::memcpy(key, key_material.data(), 16);
+    std::memcpy(iv, key_material.data() + 4, 16);
 
     // 2. Pad the file data to be a multiple of the AES block size (16 bytes)
     uint32_t original_size = file_bytes.size();
@@ -102,15 +103,15 @@ val encode_data(val image_data, val file_data, const std::string& file_extension
 val decode_data(val image_data, const std::string& password) {
     std::vector<uint8_t> image_bytes = vecFromJSArray(image_data);
 
-    // 1. Re-generate the same deterministic key, IV, and pixel order
+    // 1. Re-generate the same deterministic 128-bit key, IV, and pixel order
     std::seed_seq seed(password.begin(), password.end());
-    std::vector<uint32_t> key_material(12);
+    std::vector<uint32_t> key_material(8);
     seed.generate(key_material.begin(), key_material.end());
 
-    uint8_t key[32];
+    uint8_t key[16];
     uint8_t iv[16];
-    std::memcpy(key, key_material.data(), 32);
-    std::memcpy(iv, key_material.data() + 8, 16);
+    std::memcpy(key, key_material.data(), 16);
+    std::memcpy(iv, key_material.data() + 4, 16);
 
     std::mt19937 rng(seed);
     std::vector<int> pixel_indices(image_bytes.size());
