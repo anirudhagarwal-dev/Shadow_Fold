@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard – Shadow Fold</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { overflow-y: auto; align-items: flex-start; }
+
+        .nav-bar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 40px;
+            background: rgba(13,13,13,0.94);
+            border-bottom: 1px solid rgba(255,0,51,0.18);
+            backdrop-filter: blur(8px);
+        }
+        .nav-logo { font-family: var(--font-primary); font-size: .88rem; color: var(--primary-color); letter-spacing: .2em; text-decoration: none; text-shadow: 0 0 10px var(--primary-color); }
+        .nav-links { display: flex; gap: 28px; }
+        .nav-links a { font-family: var(--font-secondary); font-size: .72rem; color: #666; text-decoration: none; letter-spacing: .12em; text-transform: uppercase; transition: color .2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary-color); }
+
+        .page-wrap { position: relative; z-index: 1; max-width: 960px; width: 90vw; margin: 110px auto 70px; }
+
+        .page-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            margin-bottom: 36px; flex-wrap: wrap; gap: 16px;
+            animation: fadeIn .6s ease;
+        }
+        .page-header h1 { font-family: var(--font-primary); font-size: clamp(1.2rem,3.5vw,1.8rem); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); letter-spacing: .15em; }
+        .page-header p { font-family: var(--font-secondary); color: #555; font-size: .75rem; letter-spacing: .08em; margin-top: 6px; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-clear {
+            font-family: var(--font-secondary); font-size: .68rem; letter-spacing: .15em;
+            padding: 8px 16px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.25);
+            background: transparent; color: #555; cursor: pointer;
+            text-transform: uppercase; transition: color .2s, border-color .2s;
+        }
+        .btn-clear:hover { color: var(--primary-color); border-color: rgba(255,0,51,0.5); }
+
+        /* stats bar */
+        .stats-bar {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+            margin-bottom: 32px; animation: fadeIn .5s ease .1s both;
+        }
+        .stat-card {
+            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
+            border-radius: 8px; padding: 16px 18px;
+            transition: border-color .2s;
+        }
+        .stat-card:hover { border-color: rgba(255,0,51,0.3); }
+        .stat-label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .18em; color: #444; text-transform: uppercase; margin-bottom: 6px; }
+        .stat-value { font-family: var(--font-primary); font-size: 1.2rem; color: var(--primary-color); letter-spacing: .05em; }
+        .stat-sub { font-family: var(--font-secondary); font-size: .65rem; color: #383838; margin-top: 3px; }
+
+        /* filter bar */
+        .filter-bar {
+            display: flex; gap: 10px; align-items: center; margin-bottom: 20px;
+            flex-wrap: wrap; animation: fadeIn .5s ease .15s both;
+        }
+        .filter-label { font-family: var(--font-secondary); font-size: .65rem; color: #444; letter-spacing: .12em; }
+        .filter-btn {
+            font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .12em;
+            padding: 6px 14px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.15);
+            background: transparent; color: #555; cursor: pointer;
+            text-transform: uppercase; transition: all .2s;
+        }
+        .filter-btn:hover { color: var(--primary-color); border-color: rgba(255,0,51,0.4); }
+        .filter-btn.active { color: var(--primary-color); border-color: rgba(255,0,51,0.5); background: rgba(255,0,51,0.06); }
+        .search-input {
+            margin-left: auto; background: var(--card-background); border: 1px solid rgba(255,0,51,0.15);
+            border-radius: 4px; padding: 6px 14px; color: var(--text-color);
+            font-family: var(--font-secondary); font-size: .72rem; letter-spacing: .06em;
+            outline: none; width: 180px; transition: border-color .2s;
+        }
+        .search-input:focus { border-color: rgba(255,0,51,0.45); }
+        .search-input::placeholder { color: #333; }
+
+        /* table */
+        .table-wrap { animation: fadeIn .5s ease .2s both; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .2em;
+            color: #444; text-transform: uppercase; padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,0,51,0.12); text-align: left;
+        }
+        tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            transition: background .15s;
+        }
+        tbody tr:hover { background: rgba(255,0,51,0.03); }
+        tbody td {
+            padding: 13px 14px; font-family: var(--font-secondary); font-size: .75rem;
+            color: #5a5a5a; vertical-align: middle;
+        }
+        .td-type { display: inline-block; font-family: var(--font-primary); font-size: .58rem; letter-spacing: .1em; padding: 3px 8px; border-radius: 3px; }
+        .td-type.encode { color: var(--primary-color); background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.2); }
+        .td-type.decode { color: rgba(0,200,120,0.8); background: rgba(0,200,120,0.06); border: 1px solid rgba(0,200,120,0.2); }
+        .td-file { color: #888; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .td-size { color: #444; white-space: nowrap; }
+        .td-time { color: #383838; white-space: nowrap; font-size: .7rem; }
+        .td-status .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .dot.ok { background: rgba(0,200,120,0.8); box-shadow: 0 0 4px rgba(0,200,120,0.5); }
+        .dot.fail { background: var(--primary-color); box-shadow: 0 0 4px var(--primary-color); }
+        .td-actions { display: flex; gap: 8px; }
+        .act-btn {
+            font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .1em;
+            padding: 4px 10px; border-radius: 3px; border: 1px solid rgba(255,0,51,0.18);
+            background: transparent; color: #555; cursor: pointer; transition: all .2s;
+        }
+        .act-btn:hover { color: var(--primary-color); border-color: rgba(255,0,51,0.45); }
+        .act-btn.danger:hover { color: #ff6666; border-color: rgba(255,50,50,0.45); }
+
+        /* empty state */
+        .empty-state {
+            text-align: center; padding: 70px 20px;
+            border: 1px dashed rgba(255,0,51,0.12); border-radius: 10px;
+            background: var(--card-background);
+        }
+        .empty-icon { font-size: 2.8rem; margin-bottom: 16px; opacity: .5; }
+        .empty-title { font-family: var(--font-primary); font-size: .85rem; color: #444; letter-spacing: .15em; margin-bottom: 8px; }
+        .empty-sub { font-family: var(--font-secondary); font-size: .75rem; color: #333; }
+        .empty-cta {
+            display: inline-block; margin-top: 20px;
+            font-family: var(--font-secondary); font-size: .72rem; letter-spacing: .12em;
+            padding: 9px 20px; border: 1px solid rgba(255,0,51,0.3); border-radius: 4px;
+            color: var(--primary-color); text-decoration: none; text-transform: uppercase;
+            transition: background .2s;
+        }
+        .empty-cta:hover { background: rgba(255,0,51,0.07); }
+
+        /* pagination */
+        .pagination {
+            display: flex; justify-content: flex-end; align-items: center;
+            gap: 8px; margin-top: 20px;
+            animation: fadeIn .5s ease .25s both;
+        }
+        .page-info { font-family: var(--font-secondary); font-size: .68rem; color: #333; margin-right: 8px; }
+        .page-btn {
+            font-family: var(--font-secondary); font-size: .65rem;
+            padding: 5px 12px; border-radius: 3px; border: 1px solid rgba(255,0,51,0.15);
+            background: transparent; color: #555; cursor: pointer; transition: all .2s;
+        }
+        .page-btn:hover:not(:disabled) { color: var(--primary-color); border-color: rgba(255,0,51,0.4); }
+        .page-btn:disabled { opacity: .25; cursor: not-allowed; }
+        .page-btn.current { color: var(--primary-color); border-color: rgba(255,0,51,0.45); background: rgba(255,0,51,0.06); }
+
+        /* capacity mini bar */
+        .mini-bar { width: 80px; height: 4px; background: #1a1a1a; border-radius: 2px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+        .mini-fill { height: 100%; border-radius: 2px; }
+
+        @media(max-width:700px){
+            .nav-links{display:none} .stats-bar{grid-template-columns:1fr 1fr}
+            .filter-bar{gap:8px} .search-input{width:100%;margin-left:0}
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-scanline"></div>
+    <div id="animated-bg"></div>
+
+    <nav class="nav-bar">
+        <a class="nav-logo" href="index.html">SHADOW FOLD</a>
+        <div class="nav-links">
+            <a href="index.html">ENCODE / DECODE</a>
+            <a href="how-it-works.html">HOW IT WORKS</a>
+            <a href="dashboard.html" class="active">DASHBOARD</a>
+            <a href="about.html">ABOUT</a>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <div class="page-header">
+            <div>
+                <h1>DASHBOARD</h1>
+                
+            </div>
+            <div class="header-actions">
+                <button class="btn-clear" onclick="clearAll()">CLEAR LOG</button>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-card"><div class="stat-label">Total Operations</div><div class="stat-value" id="s-total">0</div><div class="stat-sub">encode + decode</div></div>
+            <div class="stat-card"><div class="stat-label">Files Encoded</div><div class="stat-value" id="s-enc">0</div><div class="stat-sub">reality folds</div></div>
+            <div class="stat-card"><div class="stat-label">Files Decoded</div><div class="stat-value" id="s-dec">0</div><div class="stat-sub">void entries</div></div>
+            <div class="stat-card"><div class="stat-label">Data Hidden</div><div class="stat-value" id="s-bytes">0 B</div><div class="stat-sub">total bytes</div></div>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="filter-bar">
+            <span class="filter-label">FILTER:</span>
+            <button class="filter-btn active" onclick="setFilter('all', this)">ALL</button>
+            <button class="filter-btn" onclick="setFilter('encode', this)">ENCODE</button>
+            <button class="filter-btn" onclick="setFilter('decode', this)">DECODE</button>
+            <button class="filter-btn" onclick="setFilter('ok', this)">SUCCESS</button>
+            <button class="filter-btn" onclick="setFilter('fail', this)">FAILED</button>
+            <input class="search-input" id="search" placeholder="Search filename..." oninput="renderTable()">
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-wrap" id="table-wrap"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <script>
+        const PER_PAGE = 10;
+        let currentFilter = 'all';
+        let currentPage = 1;
+
+        // ── localStorage helpers ──────────────────────────────────────────────
+        function getLog() { return JSON.parse(localStorage.getItem('sf_log') || '[]'); }
+        function saveLog(log) { localStorage.setItem('sf_log', JSON.stringify(log)); }
+
+        // Public API — call this from script.js to log operations
+        window.SFLog = {
+            add(entry) {
+                // entry: { type:'encode'|'decode', file, ext, size, carrier, capacity, status:'ok'|'fail' }
+                const log = getLog();
+                log.unshift({ ...entry, id: Date.now(), ts: new Date().toISOString() });
+                if (log.length > 200) log.length = 200;
+                saveLog(log);
+            }
+        };
+
+        // ── Seed demo data if log is empty ────────────────────────────────────
+        function seedDemo() {
+            if (getLog().length > 0) return;
+            const now = Date.now();
+            const demo = [
+                { type:'encode', file:'classified_report.pdf', ext:'pdf', size:48200, carrier:'landscape.png', capacity:622080, status:'ok', id:now-1, ts:new Date(now-1*60000).toISOString() },
+                { type:'decode', file:'landscape.png', ext:'png', size:0, carrier:'landscape.png', capacity:622080, status:'ok', id:now-2, ts:new Date(now-4*60000).toISOString() },
+                { type:'encode', file:'secrets.zip', ext:'zip', size:102400, carrier:'city_night.png', capacity:2073600, status:'ok', id:now-3, ts:new Date(now-12*60000).toISOString() },
+                { type:'encode', file:'message.txt', ext:'txt', size:840, carrier:'portrait.png', capacity:311040, status:'ok', id:now-4, ts:new Date(now-30*60000).toISOString() },
+                { type:'decode', file:'city_night.png', ext:'png', size:0, carrier:'city_night.png', capacity:2073600, status:'fail', id:now-5, ts:new Date(now-45*60000).toISOString() },
+                { type:'encode', file:'private_key.pem', ext:'pem', size:1700, carrier:'texture.png', capacity:466560, status:'ok', id:now-6, ts:new Date(now-2*3600000).toISOString() },
+                { type:'decode', file:'texture.png', ext:'png', size:0, carrier:'texture.png', capacity:466560, status:'ok', id:now-7, ts:new Date(now-3*3600000).toISOString() },
+                { type:'encode', file:'evidence.docx', ext:'docx', size:22500, carrier:'abstract.png', capacity:933120, status:'ok', id:now-8, ts:new Date(now-6*3600000).toISOString() },
+                { type:'encode', file:'backup.tar.gz', ext:'gz', size:88000, carrier:'macro_photo.png', capacity:1244160, status:'ok', id:now-9, ts:new Date(now-18*3600000).toISOString() },
+                { type:'decode', file:'abstract.png', ext:'png', size:0, carrier:'abstract.png', capacity:933120, status:'ok', id:now-10, ts:new Date(now-20*3600000).toISOString() },
+                { type:'encode', file:'notes.txt', ext:'txt', size:420, carrier:'wallpaper.png', capacity:3110400, status:'ok', id:now-11, ts:new Date(now-24*3600000).toISOString() },
+                { type:'decode', file:'macro_photo.png', ext:'png', size:0, carrier:'macro_photo.png', capacity:1244160, status:'fail', id:now-12, ts:new Date(now-26*3600000).toISOString() },
+            ];
+            saveLog(demo);
+        }
+
+        // ── Formatting helpers ────────────────────────────────────────────────
+        function fmtBytes(n) {
+            if (!n) return '—';
+            if (n < 1024) return n + ' B';
+            if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+            return (n/1048576).toFixed(2) + ' MB';
+        }
+        function fmtTime(iso) {
+            const d = new Date(iso), now = new Date();
+            const diff = (now - d) / 1000;
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            return d.toLocaleDateString();
+        }
+        function capColor(pct) {
+            if (pct > 80) return 'rgba(255,0,51,0.8)';
+            if (pct > 50) return 'rgba(255,170,0,0.8)';
+            return 'rgba(0,200,120,0.7)';
+        }
+
+        // ── Stats ─────────────────────────────────────────────────────────────
+        function updateStats() {
+            const log = getLog();
+            const enc = log.filter(r => r.type === 'encode');
+            const dec = log.filter(r => r.type === 'decode');
+            const bytes = enc.filter(r => r.status === 'ok').reduce((a, r) => a + (r.size || 0), 0);
+            document.getElementById('s-total').textContent = log.length;
+            document.getElementById('s-enc').textContent = enc.length;
+            document.getElementById('s-dec').textContent = dec.length;
+            document.getElementById('s-bytes').textContent = fmtBytes(bytes);
+        }
+
+        // ── Filter ────────────────────────────────────────────────────────────
+        function setFilter(f, btn) {
+            currentFilter = f; currentPage = 1;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderTable();
+        }
+
+        // ── Table ─────────────────────────────────────────────────────────────
+        function getFiltered() {
+            const log = getLog();
+            const q = document.getElementById('search').value.toLowerCase();
+            return log.filter(r => {
+                const matchFilter = currentFilter === 'all' || r.type === currentFilter || r.status === currentFilter;
+                const matchSearch = !q || r.file.toLowerCase().includes(q) || (r.carrier||'').toLowerCase().includes(q);
+                return matchFilter && matchSearch;
+            });
+        }
+
+        function renderTable() {
+            const wrap = document.getElementById('table-wrap');
+            const filtered = getFiltered();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            const slice = filtered.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
+
+            if (filtered.length === 0) {
+                wrap.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👁</div>
+                        <div class="empty-title">THE VOID IS EMPTY</div>
+                        <div class="empty-sub">No operations logged yet. Encode a file to begin.</div>
+                        <a class="empty-cta" href="index.html">FOLD REALITY</a>
+                    </div>`;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            let html = `<table>
+                <thead><tr>
+                    <th>TYPE</th><th>FILE</th><th>EXT</th>
+                    <th>SIZE</th><th>CAPACITY USED</th><th>STATUS</th>
+                    <th>TIME</th><th></th>
+                </tr></thead><tbody>`;
+
+            slice.forEach(r => {
+                const pct = r.capacity ? Math.round((r.size||0) / r.capacity * 100) : 0;
+                html += `<tr>
+                    <td><span class="td-type ${r.type}">${r.type.toUpperCase()}</span></td>
+                    <td class="td-file" title="${r.file}">${r.file}</td>
+                    <td style="color:#555">${r.ext ? r.ext.toUpperCase() : '—'}</td>
+                    <td class="td-size">${fmtBytes(r.size)}</td>
+                    <td>
+                        ${r.type === 'encode' && r.capacity ? `
+                            <span style="font-size:.7rem;color:#444">${pct}%</span>
+                            <span class="mini-bar"><span class="mini-fill" style="width:${pct}%;background:${capColor(pct)}"></span></span>
+                        ` : '<span style="color:#2a2a2a">—</span>'}
+                    </td>
+                    <td class="td-status">
+                        <span class="dot ${r.status}"></span>
+                        <span style="color:${r.status==='ok'?'rgba(0,200,120,0.7)':'rgba(255,0,51,0.7)'}">${r.status.toUpperCase()}</span>
+                    </td>
+                    <td class="td-time">${fmtTime(r.ts)}</td>
+                    <td><div class="td-actions">
+                        <button class="act-btn danger" onclick="deleteEntry(${r.id})">DEL</button>
+                    </div></td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+
+            // pagination
+            const pag = document.getElementById('pagination');
+            if (totalPages <= 1) { pag.innerHTML = ''; return; }
+            let pagHTML = `<span class="page-info">${(currentPage-1)*PER_PAGE+1}–${Math.min(currentPage*PER_PAGE, filtered.length)} of ${filtered.length}</span>`;
+            pagHTML += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>&#9664; PREV</button>`;
+            for (let i = 1; i <= totalPages; i++) {
+                pagHTML += `<button class="page-btn ${i===currentPage?'current':''}" onclick="goPage(${i})">${i}</button>`;
+            }
+            pagHTML += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>NEXT &#9654;</button>`;
+            pag.innerHTML = pagHTML;
+        }
+
+        function goPage(p) { currentPage = p; renderTable(); }
+
+        function deleteEntry(id) {
+            saveLog(getLog().filter(r => r.id !== id));
+            updateStats(); renderTable();
+        }
+
+        function clearAll() {
+            if (!confirm('Clear entire operation log?')) return;
+            saveLog([]); updateStats(); renderTable();
+        }
+
+        // ── Init ──────────────────────────────────────────────────────────────
+        seedDemo();
+        updateStats();
+        renderTable();
+    </script>
+</body>
+</html>

@@ -8,6 +8,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
+    <nav class="nav-bar">
+        <a class="nav-logo" href="index.html">SHADOW FOLD</a>
+        <div class="nav-links">
+            <a href="index.html" class="active">ENCODE / DECODE</a>
+            <a href="how-it-works.html">HOW IT WORKS</a>
+            <a href="dashboard.html">DASHBOARD</a>
+            <a href="about.html">ABOUT</a>
+        </div>
+    </nav>
     <div class="crt-scanline"></div>
     <div id="intro-screen">
         <img src="assets/skull.png" id="skull-img">
@@ -85,7 +94,7 @@
         </div>
     </div>
     <canvas id="canvas" style="display: none;"></canvas>
-    <script src="/build/steganography.js"></script>
+    <script src="build/steganography.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
