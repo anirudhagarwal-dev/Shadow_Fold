@@ -625,7 +625,9 @@ async function handleEncode() {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         // Create a copy of the original pixels for PSNR and heatmap
         const originalPixels = new Uint8Array(imageData.data);
-        const imageBytes     = new Uint8Array(imageData.data);
+        
+        // Pass the ClampedArray directly to avoid an extra copy in JS.
+        const imageBytes = imageData.data;
 
         // Sanity check
         if (imageBytes.length !== canvas.width * canvas.height * 4) {
@@ -694,9 +696,10 @@ async function handleEncode() {
             return;
         }
 
-        // result is already a standalone Uint8Array copy from WASM
-        const resultBytes = new Uint8ClampedArray(new Uint8Array(result).slice());
-        const newImageData = new ImageData(resultBytes, canvas.width, canvas.height);
+        // result is an Emscripten val representing a Uint8Array view into WASM heap.
+        // We MUST slice it immediately to create a JS-owned copy.
+        const resultBytes = new Uint8Array(result).slice();
+        const newImageData = new ImageData(new Uint8ClampedArray(resultBytes), canvas.width, canvas.height);
         ctx.putImageData(newImageData, 0, 0);
 
         const a = document.createElement('a');
@@ -828,7 +831,9 @@ async function handleDecode() {
 
         const imageData  = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
-        const imageBytes = new Uint8Array(imageData.data);
+        // Pass the ClampedArray directly to avoid an extra copy in JS.
+        // Emscripten's val handles this by copying it into the WASM heap.
+        const imageBytes = imageData.data;
 
         // Sanity check
         if (imageBytes.length !== canvas.width * canvas.height * 4) {
@@ -865,8 +870,9 @@ async function handleDecode() {
             return;
         }
 
-        // result.data is already a standalone Uint8Array copy from WASM
-        const fileData = new Uint8Array(result.data).slice(); // copy out of WASM heap
+        // result.data is an Emscripten val representing a Uint8Array view.
+        // We MUST slice it immediately to create a JS-owned copy before WASM heap grows.
+        const fileData = new Uint8Array(result.data).slice();
         const fileExt  = result.extension || 'bin';
 
         const unpackResult = await unpackPayload(fileData, fileExt);
