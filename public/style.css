@@ -5,6 +5,8 @@
     --text-color: #e0e0e0;
     --font-primary: 'Orbitron', sans-serif;
     --font-secondary: 'Share Tech Mono', monospace;
+    --accent-color: rgba(255, 0, 51, 0.2);
+    --nav-background: rgba(13, 13, 13, 0.95);
 }
 
 * {
@@ -350,14 +352,33 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 18px; /* 🔥 fixes spacing */
+    gap: 18px;
     z-index: 9999;
-    animation: fadeOut 1.5s ease 2.5s forwards;
+    cursor: none; /* 🔥 Hides the cursor for a cinematic feel */
+    user-select: none; /* 🔥 Prevents text selection cursor */
+}
+
+#intro-screen.fade-out {
+    animation: fadeOut 1.5s ease forwards;
+}
+
+#intro-prompt {
+    font-family: var(--font-primary);
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 10px var(--primary-color);
+    animation: blink 2s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 /* ===== SKULL ===== */
 #skull-img {
-    width: 95px; /* 🔥 perfect size */
+    width: 95px;
     opacity: 0.9;
     filter: drop-shadow(0 0 12px #ff0033);
     animation: fadeScale 1.2s ease, pulse 2s infinite;
@@ -449,18 +470,17 @@ body {
     }
 }
 .nav-bar {
+    background: var(--nav-background);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
     position: fixed;
     top: 0;
-    left: 0;
-    right: 0;
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 40px;
-    background: rgba(13,13,13,0.94);
-    border-bottom: 1px solid rgba(255,0,51,0.18);
-    backdrop-filter: blur(8px);
+    width: 100%;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--accent-color);
 }
 
 .nav-logo {

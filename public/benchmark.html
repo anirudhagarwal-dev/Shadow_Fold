@@ -4,6 +4,7 @@
      <meta charset="UTF-8"> 
      <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
      <title>Benchmark – Shadow Fold</title> 
+     <link rel="icon" type="image/png" href="assets/favicon.png">
      <link rel="stylesheet" href="style.css"> 
      <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
      <style> 
@@ -162,6 +163,31 @@
              selectedKB = kb; 
          } 
   
+         // --- Tracking ---
+          async function trackOperation(data) {
+               console.log('[ShadowFold] Benchmark Tracking:', data);
+               try {
+                   const response = await fetch('/api/operations', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({
+                           type: data.type,
+                           fileName: data.file,
+                           fileSize: data.size,
+                           status: data.status === 'ok' ? 'success' : 'fail',
+                           timestamp: new Date().toISOString()
+                       })
+                   });
+                   if (!response.ok) {
+                       console.error('[ShadowFold] Benchmark tracking failed with status:', response.status);
+                   } else {
+                       console.log('[ShadowFold] Benchmark tracking successful');
+                   }
+               } catch (err) {
+                   console.error('[ShadowFold] Failed to track operation:', err);
+               }
+           }
+
          // Pure JS LSB embed (same algorithm as C++, no WASM) 
          function jsLSBEmbed(imageBytes, payloadBytes) { 
              const out = new Uint8Array(imageBytes); 
@@ -247,6 +273,14 @@
              document.getElementById('js-bar').style.width = ((jsMs / maxMs) * 100) + '%'; 
              document.getElementById('speedup-num').textContent = speedup + '×'; 
   
+             // Track the benchmark task
+             trackOperation({
+                 type: 'benchmark',
+                 file: `Image (1024x1024) - Payload ${selectedKB}KB`,
+                 size: payloadSize,
+                 status: 'ok'
+             });
+
              setProgress(100, 'COMPLETE'); 
              await sleep(200); 
   

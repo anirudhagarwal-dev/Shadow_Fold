@@ -1,4 +1,31 @@
 // ==============================
+// DASHBOARD TRACKING
+// ==============================
+async function trackOperation(data) {
+    console.log('[ShadowFold] Tracking:', data);
+    try {
+        const response = await fetch('/api/operations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: data.type,
+                fileName: data.file,
+                fileSize: data.size,
+                status: data.status === 'ok' ? 'success' : 'fail',
+                timestamp: new Date().toISOString()
+            })
+        });
+        if (!response.ok) {
+            console.error('[ShadowFold] Tracking failed with status:', response.status);
+        } else {
+            console.log('[ShadowFold] Tracking successful');
+        }
+    } catch (err) {
+        console.error('[ShadowFold] Failed to track operation:', err);
+    }
+}
+
+// ==============================
 // UTILITY FUNCTIONS
 // ==============================
 
@@ -381,12 +408,6 @@ window.addEventListener('load', () => {
         if (intro) intro.style.display = 'none';
     }, 3000);
 });
-
-document.addEventListener('click', () => {
-    const audio = new Audio('assets/sounds/glitch.mp3');
-    audio.volume = 0.4;
-    audio.play().catch(() => {});
-}, { once: true });
 
 // ==============================
 // PASSWORD TOGGLE HELPER

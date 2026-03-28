@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard – Shadow Fold</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
@@ -186,10 +187,10 @@
 
         <!-- STATS -->
         <div class="stats-bar" id="stats-bar">
-            <div class="stat-card"><div class="stat-label">Total Operations</div><div class="stat-value" id="s-total">0</div><div class="stat-sub">encode + decode</div></div>
+            <div class="stat-card"><div class="stat-label">Total Operations</div><div class="stat-value" id="s-total">0</div><div class="stat-sub">encode + decode + analysis</div></div>
             <div class="stat-card"><div class="stat-label">Files Encoded</div><div class="stat-value" id="s-enc">0</div><div class="stat-sub">reality folds</div></div>
             <div class="stat-card"><div class="stat-label">Files Decoded</div><div class="stat-value" id="s-dec">0</div><div class="stat-sub">void entries</div></div>
-            <div class="stat-card"><div class="stat-label">Data Hidden</div><div class="stat-value" id="s-bytes">0 B</div><div class="stat-sub">total bytes</div></div>
+            <div class="stat-card"><div class="stat-label">Failed Tasks</div><div class="stat-value" id="s-fail" style="color:var(--primary-color)">0</div><div class="stat-sub">anomalies detected</div></div>
         </div>
 
         <!-- FILTERS -->
@@ -198,6 +199,8 @@
             <button class="filter-btn active" onclick="setFilter('all', this)">ALL</button>
             <button class="filter-btn" onclick="setFilter('encode', this)">ENCODE</button>
             <button class="filter-btn" onclick="setFilter('decode', this)">DECODE</button>
+            <button class="filter-btn" onclick="setFilter('steganalysis', this)">ANALYSIS</button>
+            <button class="filter-btn" onclick="setFilter('benchmark', this)">BENCHMARK</button>
             <button class="filter-btn" onclick="setFilter('ok', this)">SUCCESS</button>
             <button class="filter-btn" onclick="setFilter('fail', this)">FAILED</button>
             <input class="search-input" id="search" placeholder="Search filename..." oninput="renderTable()">
@@ -212,41 +215,48 @@
         const PER_PAGE = 10;
         let currentFilter = 'all';
         let currentPage = 1;
+        let dashboardData = { stats: { total: 0, encoded: 0, decoded: 0, bytes: 0 }, recentActivity: [] };
 
-        // ── localStorage helpers ──────────────────────────────────────────────
-        function getLog() { return JSON.parse(localStorage.getItem('sf_log') || '[]'); }
-        function saveLog(log) { localStorage.setItem('sf_log', JSON.stringify(log)); }
-
-        // Public API — call this from script.js to log operations
-        window.SFLog = {
-            add(entry) {
-                // entry: { type:'encode'|'decode', file, ext, size, carrier, capacity, status:'ok'|'fail' }
-                const log = getLog();
-                log.unshift({ ...entry, id: Date.now(), ts: new Date().toISOString() });
-                if (log.length > 200) log.length = 200;
-                saveLog(log);
+        // ── Backend API Helpers ──────────────────────────────────────────────
+        async function fetchDashboard() {
+            try {
+                const response = await fetch('/api/dashboard');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                dashboardData = { ...data, loaded: true };
+                updateStats();
+                renderTable();
+            } catch (err) {
+                console.error('Failed to fetch dashboard data:', err);
+                const wrap = document.getElementById('table-wrap');
+                if (wrap) {
+                    wrap.innerHTML = `<div style="text-align:center;padding:50px;font-family:var(--font-secondary);color:var(--primary-color);">
+                        ERROR: FAILED TO RETRIEVE VOID DATA<br>
+                        <span style="font-size:0.8rem;color:#555;">${err.message}</span>
+                    </div>`;
+                }
             }
-        };
+        }
 
-        // ── Seed demo data if log is empty ────────────────────────────────────
-        function seedDemo() {
-            if (getLog().length > 0) return;
-            const now = Date.now();
-            const demo = [
-                { type:'encode', file:'classified_report.pdf', ext:'pdf', size:48200, carrier:'landscape.png', capacity:622080, status:'ok', id:now-1, ts:new Date(now-1*60000).toISOString() },
-                { type:'decode', file:'landscape.png', ext:'png', size:0, carrier:'landscape.png', capacity:622080, status:'ok', id:now-2, ts:new Date(now-4*60000).toISOString() },
-                { type:'encode', file:'secrets.zip', ext:'zip', size:102400, carrier:'city_night.png', capacity:2073600, status:'ok', id:now-3, ts:new Date(now-12*60000).toISOString() },
-                { type:'encode', file:'message.txt', ext:'txt', size:840, carrier:'portrait.png', capacity:311040, status:'ok', id:now-4, ts:new Date(now-30*60000).toISOString() },
-                { type:'decode', file:'city_night.png', ext:'png', size:0, carrier:'city_night.png', capacity:2073600, status:'fail', id:now-5, ts:new Date(now-45*60000).toISOString() },
-                { type:'encode', file:'private_key.pem', ext:'pem', size:1700, carrier:'texture.png', capacity:466560, status:'ok', id:now-6, ts:new Date(now-2*3600000).toISOString() },
-                { type:'decode', file:'texture.png', ext:'png', size:0, carrier:'texture.png', capacity:466560, status:'ok', id:now-7, ts:new Date(now-3*3600000).toISOString() },
-                { type:'encode', file:'evidence.docx', ext:'docx', size:22500, carrier:'abstract.png', capacity:933120, status:'ok', id:now-8, ts:new Date(now-6*3600000).toISOString() },
-                { type:'encode', file:'backup.tar.gz', ext:'gz', size:88000, carrier:'macro_photo.png', capacity:1244160, status:'ok', id:now-9, ts:new Date(now-18*3600000).toISOString() },
-                { type:'decode', file:'abstract.png', ext:'png', size:0, carrier:'abstract.png', capacity:933120, status:'ok', id:now-10, ts:new Date(now-20*3600000).toISOString() },
-                { type:'encode', file:'notes.txt', ext:'txt', size:420, carrier:'wallpaper.png', capacity:3110400, status:'ok', id:now-11, ts:new Date(now-24*3600000).toISOString() },
-                { type:'decode', file:'macro_photo.png', ext:'png', size:0, carrier:'macro_photo.png', capacity:1244160, status:'fail', id:now-12, ts:new Date(now-26*3600000).toISOString() },
-            ];
-            saveLog(demo);
+        async function deleteEntry(id) {
+            try {
+                await fetch(`/api/operations/${id}`, { method: 'DELETE' });
+                await fetchDashboard();
+            } catch (err) {
+                console.error('Failed to delete entry:', err);
+            }
+        }
+
+        async function clearAll() {
+            if (!confirm('Clear entire operation log?')) return;
+            try {
+                await fetch('/api/operations', { method: 'DELETE' });
+                await fetchDashboard();
+            } catch (err) {
+                console.error('Failed to clear log:', err);
+            }
         }
 
         // ── Formatting helpers ────────────────────────────────────────────────
@@ -272,14 +282,11 @@
 
         // ── Stats ─────────────────────────────────────────────────────────────
         function updateStats() {
-            const log = getLog();
-            const enc = log.filter(r => r.type === 'encode');
-            const dec = log.filter(r => r.type === 'decode');
-            const bytes = enc.filter(r => r.status === 'ok').reduce((a, r) => a + (r.size || 0), 0);
-            document.getElementById('s-total').textContent = log.length;
-            document.getElementById('s-enc').textContent = enc.length;
-            document.getElementById('s-dec').textContent = dec.length;
-            document.getElementById('s-bytes').textContent = fmtBytes(bytes);
+            const { stats } = dashboardData;
+            document.getElementById('s-total').textContent = stats.total;
+            document.getElementById('s-enc').textContent = stats.encoded;
+            document.getElementById('s-dec').textContent = stats.decoded;
+            document.getElementById('s-fail').textContent = stats.failed;
         }
 
         // ── Filter ────────────────────────────────────────────────────────────
@@ -292,17 +299,24 @@
 
         // ── Table ─────────────────────────────────────────────────────────────
         function getFiltered() {
-            const log = getLog();
+            const log = dashboardData.recentActivity || [];
             const q = document.getElementById('search').value.toLowerCase();
             return log.filter(r => {
-                const matchFilter = currentFilter === 'all' || r.type === currentFilter || r.status === currentFilter;
-                const matchSearch = !q || r.file.toLowerCase().includes(q) || (r.carrier||'').toLowerCase().includes(q);
+                const status = r.status === 'success' ? 'ok' : 'fail';
+                const matchFilter = currentFilter === 'all' || r.type === currentFilter || status === currentFilter;
+                const matchSearch = !q || r.fileName.toLowerCase().includes(q);
                 return matchFilter && matchSearch;
             });
         }
 
         function renderTable() {
             const wrap = document.getElementById('table-wrap');
+            
+            if (dashboardData.recentActivity.length === 0 && !dashboardData.loaded) {
+                wrap.innerHTML = '<div style="text-align:center;padding:50px;font-family:var(--font-secondary);color:#444;">INITIALIZING SIGNAL...</div>';
+                return;
+            }
+
             const filtered = getFiltered();
             const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
             if (currentPage > totalPages) currentPage = totalPages;
@@ -322,8 +336,7 @@
 
             let html = `<table>
                 <thead><tr>
-                    <th>TYPE</th><th>FILE</th><th>EXT</th>
-                    <th>SIZE</th><th>CAPACITY USED</th><th>STATUS</th>
+                    <th>TYPE</th><th>FILE</th><th>SIZE</th><th>STATUS</th>
                     <th>TIME</th><th></th>
                 </tr></thead><tbody>`;
 
@@ -345,10 +358,10 @@
                         ` : '<span style="color:#2a2a2a">—</span>'}
                     </td>
                     <td class="td-status">
-                        <span class="dot ${r.status}"></span>
-                        <span style="color:${r.status==='ok'?'rgba(0,200,120,0.7)':'rgba(255,0,51,0.7)'}">${r.status.toUpperCase()}</span>
+                        <span class="dot ${status}"></span>
+                        <span style="color:${status==='ok'?'rgba(0,200,120,0.7)':'rgba(255,0,51,0.7)'}">${status.toUpperCase()}</span>
                     </td>
-                    <td class="td-time">${fmtTime(r.ts)}</td>
+                    <td class="td-time">${fmtTime(r.timestamp)}</td>
                     <td><div class="td-actions">
                         <button class="act-btn danger" onclick="deleteEntry(${r.id})">DEL</button>
                     </div></td>
@@ -372,20 +385,10 @@
 
         function goPage(p) { currentPage = p; renderTable(); }
 
-        function deleteEntry(id) {
-            saveLog(getLog().filter(r => r.id !== id));
-            updateStats(); renderTable();
-        }
-
-        function clearAll() {
-            if (!confirm('Clear entire operation log?')) return;
-            saveLog([]); updateStats(); renderTable();
-        }
-
         // ── Init ──────────────────────────────────────────────────────────────
-        seedDemo();
-        updateStats();
-        renderTable();
+        fetchDashboard();
+        // Poll for updates every 5 seconds for "real-time" feel
+        setInterval(fetchDashboard, 5000);
     </script>
 </body>
 </html>
