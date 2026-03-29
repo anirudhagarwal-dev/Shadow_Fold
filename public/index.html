@@ -23,17 +23,52 @@
     </nav>
     <div class="crt-scanline"></div>
     <div id="intro-screen">
-        <div id="intro-prompt">CLICK TO ACCESS VOID</div>
-        <div id="intro-content" style="display: none; flex-direction: column; align-items: center; gap: 18px;">
-            <img src="assets/skull.png" id="skull-img">
-            <h1 class="intro-text">ACCESSING VOID...</h1>
+        <div class="intro-background">
+            <div class="grid-overlay"></div>
+            <div class="scanline"></div>
         </div>
-        <audio id="intro-audio" src="assets/sounds/glitch.mp3"></audio>
+        
+        <div class="intro-content">
+            <div class="glitch-wrapper">
+                <h1 class="intro-title" data-text="SHADOW FOLD">SHADOW FOLD</h1>
+            </div>
+            <div class="intro-subtitle">ACCESSING SECURE TERMINAL...</div>
+            
+            <div class="loading-bar-container">
+                <div class="loading-bar"></div>
+            </div>
+            
+            <div class="intro-terminal">
+                <p class="terminal-line">> INITIALIZING VOID PROTOCOL...</p>
+                <p class="terminal-line">> ESTABLISHING SECURE CONNECTION...</p>
+                <p class="terminal-line">> LOADING STEGANOGRAPHIC ENGINE...</p>
+                <p class="terminal-line">> BYPASSING VISUAL ARTIFACTS...</p>
+            </div>
+
+            <button id="enter-void-btn" class="enter-btn">
+                <span class="btn-glitch-content">ENTER THE VOID</span>
+                <span class="btn-glitch-effect"></span>
+            </button>
+        </div>
+        
+        <div class="intro-footer">
+            <span>SECURE ENCRYPTION ACTIVE</span>
+            <span class="status-dot"></span>
+            <span>SYSTEM VERSION 2.0.4</span>
+        </div>
     </div>
     <div id="animated-bg"></div>
+    
     <div class="container">
         <div class="glass-card">
+            <!-- Electric Moving Blades -->
+            <div class="electric-blade blade-tl"></div>
+            <div class="electric-blade blade-tr"></div>
+            <div class="electric-blade blade-bl"></div>
+            <div class="electric-blade blade-br"></div>
+            
             <header>
+                <div class="header-pre">◈ SECURE STEGANOGRAPHY ENGINE v2.0</div>
                 <h1>SHADOW FOLD</h1>
                 <h2>THE VISUAL VOID</h2>
             </header>
@@ -98,13 +133,13 @@
                                     </div>
                                     <div class="dl-col">
                                         <div class="dl-label">LAYER 2 (DECOY)</div>
-                                        <div id="decoy-file-drop-zone" class="drop-zone small-drop-zone decoy-accent">
+                                        <div id="decoy-file-drop-zone" class="drop-zone small-drop-zone">
                                             <p>Drop Decoy</p>
                                             <input type="file" id="decoy-file-input" hidden>
                                             <span id="decoy-file-name" class="file-name-text"></span>
                                         </div>
                                         <div class="password-container" style="margin-top: 10px; margin-bottom: 0;">
-                                            <input type="password" id="decoy-password" placeholder="Decoy Password" style="font-size: 0.7rem; padding: 0.5rem;">
+                                            <input type="password" id="decoy-password" placeholder="Decoy Password" style="font-size: 0.7rem; padding: 0.5rem; background: rgba(255,0,51,0.03); border-color: rgba(255,0,51,0.2);">
                                             <div id="decoy-password-strength" class="password-strength"></div>
                                         </div>
                                     </div>
@@ -118,40 +153,16 @@
                             ◈ DUAL LAYER ACTIVE
                         </div>
                     </div>
-                    <div class="panel right-panel">
-                        <h3>THE VOID</h3>
-                        <button id="encode-button" class="action-button">FOLD REALITY</button>
-                        
-                        <!-- Capacity Indicator --> 
-                        <div id="capacity-section" style="display:none; margin-bottom:16px;"> 
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"> 
-                                <span style="font-family:var(--font-secondary);font-size:0.62rem;letter-spacing:0.18em;color:#444;text-transform:uppercase;">Image Capacity</span> 
-                                <span style="display:flex;gap:10px;align-items:center;"> 
-                                    <span id="capacity-pct" style="font-family:var(--font-primary);font-size:0.75rem;color:var(--primary-color);">0%</span> 
-                                    <span id="capacity-max" style="font-family:var(--font-secondary);font-size:0.65rem;color:#383838;"></span> 
-                                </span> 
-                            </div> 
-                            <div style="background:rgba(255,0,51,0.08);border-radius:4px;height:6px;border:1px solid rgba(255,0,51,0.15);overflow:hidden;"> 
-                                <div id="capacity-bar" style="height:100%;border-radius:4px;width:0%;transition:width 0.4s ease,background 0.3s;"></div> 
-                            </div> 
-                            <div style="margin-top:4px;"> 
-                                <span id="capacity-used" style="font-family:var(--font-secondary);font-size:0.62rem;color:#333;"></span> 
-                            </div> 
-                        </div> 
-                    
-                        <!-- Encode Stats --> 
-                        <div id="encode-stats" class="stats-container"></div> 
-                    
-                        <!-- Pixel Heatmap --> 
-                        <div id="heatmap-section" style="display:none;margin-top:16px;"> 
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"> 
-                                <span style="font-family:var(--font-secondary);font-size:0.62rem;letter-spacing:0.18em;color:#444;text-transform:uppercase;">Pixel Modification Map</span> 
-                                <span id="heatmap-label" style="font-family:var(--font-secondary);font-size:0.62rem;color:#555;"></span> 
-                            </div> 
-                            <canvas id="heatmap-canvas" style="width:100%;height:auto;max-height:160px;object-fit:contain;border-radius:6px;border:1px solid rgba(255,0,51,0.2);display:block;"></canvas> 
-                            <p style="font-family:var(--font-secondary);font-size:0.6rem;color:#333;margin-top:5px;text-align:center;">RED = modified pixels · DARK = unmodified · PRNG-scattered, not sequential</p> 
-                        </div>
+                </div>
+                
+                <div class="action-area" style="margin-top: 20px; text-align: center; width: 100%;">
+                    <div class="action-deco">
+                        <span class="deco-bracket">[</span>
+                        <span class="deco-text">THE VOID</span>
+                        <span class="deco-bracket">]</span>
                     </div>
+                    <button id="encode-button" class="action-button" style="margin-top: 10px;">FOLD REALITY</button>
+                    <div id="encode-stats" class="stats-container"></div>
                 </div>
             </main>
 
@@ -195,10 +206,17 @@
                                 <span class="info-tooltip" title="Dual-layer images require BOTH passwords to locate either layer. This is by design.">?</span>
                             </div>
                         </div>
-
-                        <button id="decode-button" class="action-button decode-glow" style="margin-top: 20px;">ENTER THE VOID</button>
-                        <div id="decode-stats" class="stats-container"></div>
                     </div>
+                </div>
+
+                <div class="action-area" style="margin-top: 20px; text-align: center; width: 100%;">
+                    <div class="action-deco">
+                        <span class="deco-bracket">[</span>
+                        <span class="deco-text">THE VOID</span>
+                        <span class="deco-bracket">]</span>
+                    </div>
+                    <button id="decode-button" class="action-button decode-glow" style="margin-top: 10px;">ENTER THE VOID</button>
+                    <div id="decode-stats" class="stats-container"></div>
                 </div>
             </main>
 

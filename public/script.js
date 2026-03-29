@@ -190,10 +190,47 @@ function initCustomCursor() {
 }
 
 // ==============================
+// DYNAMIC HUD UPDATES
+// ==============================
+function initDynamicHUD() {
+    const coords = document.querySelectorAll('.hud-coord');
+    const signal = document.getElementById('hud-signal');
+    
+    setInterval(() => {
+        coords.forEach(el => {
+            const x = (Math.random() * 100).toFixed(2).padStart(6, '0');
+            const y = (Math.random() * 100).toFixed(2).padStart(6, '0');
+            const axis = el.textContent.split(':')[0];
+            if (axis === 'X') {
+                el.textContent = `X: ${x} Y: ${y}`;
+            } else {
+                el.textContent = `Z: ${x} R: ${y}`;
+            }
+        });
+    }, 2000);
+
+    // Subtle signal flicker
+    setInterval(() => {
+        if (signal) {
+            const original = signal.textContent;
+            if (Math.random() > 0.9) {
+                signal.textContent = 'INTERFERENCE';
+                signal.style.color = '#fff';
+                setTimeout(() => {
+                    signal.textContent = original;
+                    signal.style.color = '';
+                }, 150);
+            }
+        }
+    }, 3000);
+}
+
+// ==============================
 // DOM READY
 // ==============================
 document.addEventListener('DOMContentLoaded', () => {
     initCustomCursor();
+    initDynamicHUD();
     // Multi-File Pack State
     window.SF_PackFiles = [];
 
@@ -471,16 +508,29 @@ function downloadBlob(data, filename) {
 
 
 // ==============================
-// INTRO SCREEN + SOUND
+// ENHANCED INTRO SCREEN + SOUND
 // ==============================
 window.addEventListener('load', () => {
     const audio = new Audio('assets/sounds/glitch.mp3');
-    audio.volume = 0.4;
-    setTimeout(() => { audio.play().catch(() => {}); }, 400);
-    setTimeout(() => {
-        const intro = document.getElementById('intro-screen');
-        if (intro) intro.style.display = 'none';
-    }, 3000);
+    audio.volume = 0.1; 
+    
+    const intro = document.getElementById('intro-screen');
+    const enterBtn = document.getElementById('enter-void-btn');
+
+    if (enterBtn) {
+        enterBtn.addEventListener('click', () => {
+            // Play sound on click
+            audio.play().catch(() => {});
+            
+            // Start fade out
+            if (intro) {
+                intro.classList.add('fade-out');
+                setTimeout(() => {
+                    intro.style.display = 'none';
+                }, 1000);
+            }
+        });
+    }
 });
 
 // ==============================
