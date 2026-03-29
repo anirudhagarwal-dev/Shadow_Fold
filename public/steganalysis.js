@@ -1,4 +1,69 @@
+// ==============================
+// CYBERPUNK GLITCH CURSOR
+// ==============================
+function initCustomCursor() {
+    const container = document.createElement('div');
+    container.className = 'custom-cursor-container';
+    
+    const cursor = document.createElement('div');
+    cursor.className = 'custom-cursor';
+    cursor.innerHTML = `
+        <div class="cursor-ghost"></div>
+        <div class="cursor-ring"></div>
+        <div class="cursor-dot"></div>
+    `;
+    
+    container.appendChild(cursor);
+    document.body.appendChild(container);
+
+    let mouseX = 0, mouseY = 0;
+    let cursorX = 0, cursorY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    function animate() {
+        const easing = 0.15;
+        cursorX += (mouseX - cursorX) * easing;
+        cursorY += (mouseY - cursorY) * easing;
+        cursor.style.left = `${cursorX}px`;
+        cursor.style.top = `${cursorY}px`;
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+    setInterval(() => {
+        if (Math.random() > 0.85) {
+            cursor.classList.add('glitch-active');
+            setTimeout(() => cursor.classList.remove('glitch-active'), 150);
+        }
+        if (Math.random() > 0.95) {
+            cursor.classList.add('flicker-active');
+            setTimeout(() => cursor.classList.remove('flicker-active'), 80);
+        }
+    }, 500);
+
+    document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
+    document.addEventListener('mouseup', () => cursor.classList.remove('clicking'));
+
+    const updateHoverables = () => {
+        const hoverables = document.querySelectorAll('a, button, .drop-zone, .tab-button, input, .mode-btn');
+        hoverables.forEach(el => {
+            if (el.dataset.cursorBound) return;
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+            el.dataset.cursorBound = "true";
+        });
+    };
+    updateHoverables();
+    const observer = new MutationObserver(updateHoverables);
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    initCustomCursor();
     // --- Tracking ---
     async function trackOperation(data) {
         console.log('[ShadowFold] Analysis Tracking:', data);

@@ -117,9 +117,83 @@ function getWASMVersion() {
 }
 
 // ==============================
+// CYBERPUNK GLITCH CURSOR
+// ==============================
+function initCustomCursor() {
+    const container = document.createElement('div');
+    container.className = 'custom-cursor-container';
+    
+    const cursor = document.createElement('div');
+    cursor.className = 'custom-cursor';
+    cursor.innerHTML = `
+        <div class="cursor-ghost"></div>
+        <div class="cursor-ring"></div>
+        <div class="cursor-dot"></div>
+    `;
+    
+    container.appendChild(cursor);
+    document.body.appendChild(container);
+
+    let mouseX = 0, mouseY = 0;
+    let cursorX = 0, cursorY = 0;
+    let isMoving = false;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        isMoving = true;
+    });
+
+    // Smooth follow using requestAnimationFrame
+    function animate() {
+        const easing = 0.15;
+        cursorX += (mouseX - cursorX) * easing;
+        cursorY += (mouseY - cursorY) * easing;
+        
+        cursor.style.left = `${cursorX}px`;
+        cursor.style.top = `${cursorY}px`;
+        
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Glitch logic: Jitter and Flicker
+    setInterval(() => {
+        if (Math.random() > 0.85) { // 15% chance to glitch
+            cursor.classList.add('glitch-active');
+            setTimeout(() => cursor.classList.remove('glitch-active'), 100 + Math.random() * 200);
+        }
+        
+        if (Math.random() > 0.95) { // 5% chance to flicker
+            cursor.classList.add('flicker-active');
+            setTimeout(() => cursor.classList.remove('flicker-active'), 50 + Math.random() * 100);
+        }
+    }, 500);
+
+    document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
+    document.addEventListener('mouseup', () => cursor.classList.remove('clicking'));
+
+    const updateHoverables = () => {
+        const hoverables = document.querySelectorAll('a, button, .drop-zone, .tab-button, input, .mode-btn');
+        hoverables.forEach(el => {
+            if (el.dataset.cursorBound) return;
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+            el.dataset.cursorBound = "true";
+        });
+    };
+    updateHoverables();
+    
+    // Watch for dynamic elements
+    const observer = new MutationObserver(updateHoverables);
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// ==============================
 // DOM READY
 // ==============================
 document.addEventListener('DOMContentLoaded', () => {
+    initCustomCursor();
     // Multi-File Pack State
     window.SF_PackFiles = [];
 
@@ -996,6 +1070,25 @@ function generateHeatmap(originalBytes, encodedBytes, width, height, isDual) {
             labelText += ` · ✓ ZERO partition overlap detected`;
         }
         heatmapLabel.textContent = labelText;
+    }
+}
+
+// ==============================
+// LOADER HELPERS
+// ==============================
+function showLoader(text) {
+    const loader = document.getElementById('loader');
+    const loaderText = document.getElementById('loader-text');
+    if (loader) {
+        if (loaderText && text) loaderText.textContent = text;
+        loader.classList.add('active');
+    }
+}
+
+function hideLoader() {
+    const loader = document.getElementById('loader');
+    if (loader) {
+        loader.classList.remove('active');
     }
 }
 
