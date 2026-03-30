@@ -8,84 +8,77 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        body { overflow-y: auto; align-items: flex-start; }
-
-        .nav-bar {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 40px;
-            background: rgba(13,13,13,0.94);
-            border-bottom: 1px solid rgba(255,0,51,0.18);
-            backdrop-filter: blur(8px);
-        }
-        .nav-logo { font-family: var(--font-primary); font-size: .88rem; color: var(--primary-color); letter-spacing: .2em; text-decoration: none; text-shadow: 0 0 10px var(--primary-color); }
-        .nav-links { display: flex; gap: 28px; }
-        .nav-links a { font-family: var(--font-secondary); font-size: .72rem; color: #666; text-decoration: none; letter-spacing: .12em; text-transform: uppercase; transition: color .2s; }
-        .nav-links a:hover, .nav-links a.active { color: var(--primary-color); }
-
-        .page-wrap { position: relative; z-index: 1; max-width: 960px; width: 90vw; margin: 110px auto 70px; }
-
         .page-header {
             display: flex; align-items: flex-start; justify-content: space-between;
-            margin-bottom: 36px; flex-wrap: wrap; gap: 16px;
+            margin-bottom: 25px; flex-wrap: wrap; gap: 16px;
             animation: fadeIn .6s ease;
+            width: 100%;
         }
-        .page-header h1 { font-family: var(--font-primary); font-size: clamp(1.2rem,3.5vw,1.8rem); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); letter-spacing: .15em; }
-        .page-header p { font-family: var(--font-secondary); color: #555; font-size: .75rem; letter-spacing: .08em; margin-top: 6px; }
+        .page-header h1 { 
+            font-family: var(--font-primary); 
+            font-size: 1.8rem; 
+            color: var(--primary-color); 
+            text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); 
+            letter-spacing: .15em; 
+            margin: 0;
+        }
         .header-actions { display: flex; gap: 10px; align-items: center; }
         .btn-clear {
             font-family: var(--font-secondary); font-size: .68rem; letter-spacing: .15em;
             padding: 8px 16px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.25);
             background: transparent; color: #555; cursor: pointer;
-            text-transform: uppercase; transition: color .2s, border-color .2s;
+            text-transform: uppercase; transition: all .2s;
         }
-        .btn-clear:hover { color: var(--primary-color); border-color: rgba(255,0,51,0.5); }
+        .btn-clear:hover { color: var(--primary-color); border-color: rgba(255,0,51,0.5); background: rgba(255,0,51,0.05); }
 
         /* stats bar */
         .stats-bar {
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-            margin-bottom: 32px; animation: fadeIn .5s ease .1s both;
+            margin-bottom: 25px; animation: fadeIn .5s ease .1s both;
+            width: 100%;
         }
         .stat-card {
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
-            border-radius: 8px; padding: 16px 18px;
+            background: rgba(255, 0, 51, 0.02); border: 1px solid rgba(255,0,51,0.12);
+            border-radius: 8px; padding: 15px;
             transition: border-color .2s;
         }
         .stat-card:hover { border-color: rgba(255,0,51,0.3); }
-        .stat-label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .18em; color: #444; text-transform: uppercase; margin-bottom: 6px; }
+        .stat-label { font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .18em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
         .stat-value { font-family: var(--font-primary); font-size: 1.2rem; color: var(--primary-color); letter-spacing: .05em; }
-        .stat-sub { font-family: var(--font-secondary); font-size: .65rem; color: #383838; margin-top: 3px; }
+        .stat-sub { font-family: var(--font-secondary); font-size: .65rem; color: var(--text-muted); margin-top: 3px; letter-spacing: 1px; }
 
         /* filter bar */
         .filter-bar {
-            display: flex; gap: 10px; align-items: center; margin-bottom: 20px;
+            display: flex; gap: 10px; align-items: center; margin-bottom: 15px;
             flex-wrap: wrap; animation: fadeIn .5s ease .15s both;
+            width: 100%;
         }
-        .filter-label { font-family: var(--font-secondary); font-size: .65rem; color: #444; letter-spacing: .12em; }
+        .filter-label { font-family: var(--font-secondary); font-size: .7rem; color: var(--text-secondary); letter-spacing: .12em; }
         .filter-btn {
-            font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .12em;
-            padding: 6px 14px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.15);
-            background: transparent; color: #555; cursor: pointer;
+            font-family: var(--font-secondary); font-size: .7rem; letter-spacing: .12em;
+            padding: 5px 12px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.15);
+            background: transparent; color: var(--text-secondary); cursor: pointer;
             text-transform: uppercase; transition: all .2s;
         }
         .filter-btn:hover { color: var(--primary-color); border-color: rgba(255,0,51,0.4); }
         .filter-btn.active { color: var(--primary-color); border-color: rgba(255,0,51,0.5); background: rgba(255,0,51,0.06); }
         .search-input {
-            margin-left: auto; background: var(--card-background); border: 1px solid rgba(255,0,51,0.15);
+            margin-left: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,0,51,0.15);
             border-radius: 4px; padding: 6px 14px; color: var(--text-color);
-            font-family: var(--font-secondary); font-size: .72rem; letter-spacing: .06em;
+            font-family: var(--font-secondary); font-size: .75rem; letter-spacing: .06em;
             outline: none; width: 180px; transition: border-color .2s;
         }
         .search-input:focus { border-color: rgba(255,0,51,0.45); }
-        .search-input::placeholder { color: #333; }
+        .search-input::placeholder { color: var(--text-muted); }
 
         /* table */
-        .table-wrap { animation: fadeIn .5s ease .2s both; overflow-x: auto; }
+        .table-wrap { animation: fadeIn .5s ease .2s both; overflow-x: auto; width: 100%; max-height: 40vh; }
         table { width: 100%; border-collapse: collapse; }
         thead th {
-            font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .2em;
-            color: #444; text-transform: uppercase; padding: 10px 14px;
+            font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .2em;
+            color: var(--text-muted); text-transform: uppercase; padding: 10px 14px;
             border-bottom: 1px solid rgba(255,0,51,0.12); text-align: left;
+            position: sticky; top: 0; background: rgba(10, 10, 10, 0.9); z-index: 5;
         }
         tbody tr {
             border-bottom: 1px solid rgba(255,255,255,0.03);
@@ -93,22 +86,22 @@
         }
         tbody tr:hover { background: rgba(255,0,51,0.03); }
         tbody td {
-            padding: 13px 14px; font-family: var(--font-secondary); font-size: .75rem;
-            color: #5a5a5a; vertical-align: middle;
+            padding: 10px 14px; font-family: var(--font-secondary); font-size: .75rem;
+            color: var(--text-secondary); vertical-align: middle;
         }
-        .td-type { display: inline-block; font-family: var(--font-primary); font-size: .58rem; letter-spacing: .1em; padding: 3px 8px; border-radius: 3px; }
+        .td-type { display: inline-block; font-family: var(--font-primary); font-size: .55rem; letter-spacing: .1em; padding: 2px 6px; border-radius: 3px; }
         .td-type.encode { color: var(--primary-color); background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.2); }
         .td-type.decode { color: rgba(0,200,120,0.8); background: rgba(0,200,120,0.06); border: 1px solid rgba(0,200,120,0.2); }
-        .td-file { color: #888; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .td-file { color: #888; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .td-size { color: #444; white-space: nowrap; }
-        .td-time { color: #383838; white-space: nowrap; font-size: .7rem; }
-        .td-status .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .td-time { color: #383838; white-space: nowrap; font-size: .65rem; }
+        .td-status .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .dot.ok { background: rgba(0,200,120,0.8); box-shadow: 0 0 4px rgba(0,200,120,0.5); }
         .dot.fail { background: var(--primary-color); box-shadow: 0 0 4px var(--primary-color); }
         .td-actions { display: flex; gap: 8px; }
         .act-btn {
-            font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .1em;
-            padding: 4px 10px; border-radius: 3px; border: 1px solid rgba(255,0,51,0.18);
+            font-family: var(--font-secondary); font-size: .55rem; letter-spacing: .1em;
+            padding: 3px 8px; border-radius: 3px; border: 1px solid rgba(255,0,51,0.18);
             background: transparent; color: #555; cursor: pointer; transition: all .2s;
         }
         .act-btn:hover { color: var(--primary-color); border-color: rgba(255,0,51,0.45); }
@@ -116,17 +109,18 @@
 
         /* empty state */
         .empty-state {
-            text-align: center; padding: 70px 20px;
+            text-align: center; padding: 40px 20px;
             border: 1px dashed rgba(255,0,51,0.12); border-radius: 10px;
-            background: var(--card-background);
+            background: rgba(255,0,51,0.02);
+            width: 100%;
         }
-        .empty-icon { font-size: 2.8rem; margin-bottom: 16px; opacity: .5; }
-        .empty-title { font-family: var(--font-primary); font-size: .85rem; color: #444; letter-spacing: .15em; margin-bottom: 8px; }
-        .empty-sub { font-family: var(--font-secondary); font-size: .75rem; color: #333; }
+        .empty-icon { font-size: 2rem; margin-bottom: 12px; opacity: .5; }
+        .empty-title { font-family: var(--font-primary); font-size: .75rem; color: #444; letter-spacing: .15em; margin-bottom: 8px; }
+        .empty-sub { font-family: var(--font-secondary); font-size: .7rem; color: #333; }
         .empty-cta {
-            display: inline-block; margin-top: 20px;
-            font-family: var(--font-secondary); font-size: .72rem; letter-spacing: .12em;
-            padding: 9px 20px; border: 1px solid rgba(255,0,51,0.3); border-radius: 4px;
+            display: inline-block; margin-top: 15px;
+            font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .12em;
+            padding: 7px 16px; border: 1px solid rgba(255,0,51,0.3); border-radius: 4px;
             color: var(--primary-color); text-decoration: none; text-transform: uppercase;
             transition: background .2s;
         }
@@ -135,13 +129,14 @@
         /* pagination */
         .pagination {
             display: flex; justify-content: flex-end; align-items: center;
-            gap: 8px; margin-top: 20px;
+            gap: 8px; margin-top: 15px;
             animation: fadeIn .5s ease .25s both;
+            width: 100%;
         }
-        .page-info { font-family: var(--font-secondary); font-size: .68rem; color: #333; margin-right: 8px; }
+        .page-info { font-family: var(--font-secondary); font-size: .6rem; color: #333; margin-right: 8px; }
         .page-btn {
-            font-family: var(--font-secondary); font-size: .65rem;
-            padding: 5px 12px; border-radius: 3px; border: 1px solid rgba(255,0,51,0.15);
+            font-family: var(--font-secondary); font-size: .6rem;
+            padding: 4px 10px; border-radius: 3px; border: 1px solid rgba(255,0,51,0.15);
             background: transparent; color: #555; cursor: pointer; transition: all .2s;
         }
         .page-btn:hover:not(:disabled) { color: var(--primary-color); border-color: rgba(255,0,51,0.4); }
@@ -149,19 +144,16 @@
         .page-btn.current { color: var(--primary-color); border-color: rgba(255,0,51,0.45); background: rgba(255,0,51,0.06); }
 
         /* capacity mini bar */
-        .mini-bar { width: 80px; height: 4px; background: #1a1a1a; border-radius: 2px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+        .mini-bar { width: 60px; height: 3px; background: #1a1a1a; border-radius: 2px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
         .mini-fill { height: 100%; border-radius: 2px; }
 
         @media(max-width:700px){
-            .nav-links{display:none} .stats-bar{grid-template-columns:1fr 1fr}
+            .nav-bar{padding:12px 20px} .nav-links{display:none} .stats-bar{grid-template-columns:1fr 1fr}
             .filter-bar{gap:8px} .search-input{width:100%;margin-left:0}
         }
     </style>
 </head>
 <body>
-    <div class="crt-scanline"></div>
-    <div id="animated-bg"></div>
-
     <nav class="nav-bar">
         <a class="nav-logo" href="index.html">SHADOW FOLD</a>
         <div class="nav-links">
@@ -174,43 +166,54 @@
         </div>
     </nav>
 
-    <div class="page-wrap">
-        <div class="page-header">
-            <div>
-                <h1>DASHBOARD</h1>
-                
+    <div class="crt-scanline"></div>
+    <div id="animated-bg"></div>
+
+    <div class="container">
+        <div class="glass-card">
+            <!-- Electric Moving Blades -->
+            <div class="electric-blade blade-tl"></div>
+            <div class="electric-blade blade-tr"></div>
+            <div class="electric-blade blade-bl"></div>
+            <div class="electric-blade blade-br"></div>
+
+            <div class="page-header">
+                <div>
+                    <h1>DASHBOARD</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-clear" onclick="clearAll()">CLEAR LOG</button>
+                </div>
             </div>
-            <div class="header-actions">
-                <button class="btn-clear" onclick="clearAll()">CLEAR LOG</button>
+
+            <!-- STATS -->
+            <div class="stats-bar" id="stats-bar">
+                <div class="stat-card"><div class="stat-label">Total Operations</div><div class="stat-value" id="s-total">0</div><div class="stat-sub">encode + decode + analysis</div></div>
+                <div class="stat-card"><div class="stat-label">Files Encoded</div><div class="stat-value" id="s-enc">0</div><div class="stat-sub">reality folds</div></div>
+                <div class="stat-card"><div class="stat-label">Files Decoded</div><div class="stat-value" id="s-dec">0</div><div class="stat-sub">void entries</div></div>
+                <div class="stat-card"><div class="stat-label">Failed Tasks</div><div class="stat-value" id="s-fail" style="color:var(--primary-color)">0</div><div class="stat-sub">anomalies detected</div></div>
             </div>
-        </div>
 
-        <!-- STATS -->
-        <div class="stats-bar" id="stats-bar">
-            <div class="stat-card"><div class="stat-label">Total Operations</div><div class="stat-value" id="s-total">0</div><div class="stat-sub">encode + decode + analysis</div></div>
-            <div class="stat-card"><div class="stat-label">Files Encoded</div><div class="stat-value" id="s-enc">0</div><div class="stat-sub">reality folds</div></div>
-            <div class="stat-card"><div class="stat-label">Files Decoded</div><div class="stat-value" id="s-dec">0</div><div class="stat-sub">void entries</div></div>
-            <div class="stat-card"><div class="stat-label">Failed Tasks</div><div class="stat-value" id="s-fail" style="color:var(--primary-color)">0</div><div class="stat-sub">anomalies detected</div></div>
-        </div>
+            <!-- FILTERS -->
+            <div class="filter-bar">
+                <span class="filter-label">FILTER:</span>
+                <button class="filter-btn active" onclick="setFilter('all', this)">ALL</button>
+                <button class="filter-btn" onclick="setFilter('encode', this)">ENCODE</button>
+                <button class="filter-btn" onclick="setFilter('decode', this)">DECODE</button>
+                <button class="filter-btn" onclick="setFilter('steganalysis', this)">ANALYSIS</button>
+                <button class="filter-btn" onclick="setFilter('benchmark', this)">BENCHMARK</button>
+                <button class="filter-btn" onclick="setFilter('ok', this)">SUCCESS</button>
+                <button class="filter-btn" onclick="setFilter('fail', this)">FAILED</button>
+                <input class="search-input" id="search" placeholder="Search filename..." oninput="renderTable()">
+            </div>
 
-        <!-- FILTERS -->
-        <div class="filter-bar">
-            <span class="filter-label">FILTER:</span>
-            <button class="filter-btn active" onclick="setFilter('all', this)">ALL</button>
-            <button class="filter-btn" onclick="setFilter('encode', this)">ENCODE</button>
-            <button class="filter-btn" onclick="setFilter('decode', this)">DECODE</button>
-            <button class="filter-btn" onclick="setFilter('steganalysis', this)">ANALYSIS</button>
-            <button class="filter-btn" onclick="setFilter('benchmark', this)">BENCHMARK</button>
-            <button class="filter-btn" onclick="setFilter('ok', this)">SUCCESS</button>
-            <button class="filter-btn" onclick="setFilter('fail', this)">FAILED</button>
-            <input class="search-input" id="search" placeholder="Search filename..." oninput="renderTable()">
+            <!-- TABLE -->
+            <div class="table-wrap" id="table-wrap"></div>
+            <div class="pagination" id="pagination"></div>
         </div>
-
-        <!-- TABLE -->
-        <div class="table-wrap" id="table-wrap"></div>
-        <div class="pagination" id="pagination"></div>
     </div>
 
+    <script src="script.js"></script>
     <script>
         const PER_PAGE = 10;
         let currentFilter = 'all';
@@ -342,21 +345,15 @@
 
             slice.forEach(r => {
                 const pct = r.capacity ? Math.round((r.size||0) / r.capacity * 100) : 0;
+                const status = r.status === 'success' ? 'ok' : 'fail';
                 const isPack = r.ext === 'sfpack';
-                const fileLabel = isPack && r.fileCount ? `[${r.fileCount} FILES] ${r.file}` : r.file;
+                const fileLabel = isPack && r.fileCount ? `[${r.fileCount} FILES] ${r.fileName}` : r.fileName;
                 const fileStyle = isPack ? 'color:#ff9900; font-weight:bold;' : '';
 
                 html += `<tr>
                     <td><span class="td-type ${r.type}">${r.type.toUpperCase()}</span></td>
-                    <td class="td-file" title="${r.file}" style="${fileStyle}">${fileLabel}</td>
-                    <td style="color:#555">${r.ext ? r.ext.toUpperCase() : '—'}</td>
-                    <td class="td-size">${fmtBytes(r.size)}</td>
-                    <td>
-                        ${r.type === 'encode' && r.capacity ? `
-                            <span style="font-size:.7rem;color:#444">${pct}%</span>
-                            <span class="mini-bar"><span class="mini-fill" style="width:${pct}%;background:${capColor(pct)}"></span></span>
-                        ` : '<span style="color:#2a2a2a">—</span>'}
-                    </td>
+                    <td class="td-file" title="${r.fileName}" style="${fileStyle}">${fileLabel}</td>
+                    <td class="td-size">${fmtBytes(r.fileSize)}</td>
                     <td class="td-status">
                         <span class="dot ${status}"></span>
                         <span style="color:${status==='ok'?'rgba(0,200,120,0.7)':'rgba(255,0,51,0.7)'}">${status.toUpperCase()}</span>
@@ -386,69 +383,6 @@
         function goPage(p) { currentPage = p; renderTable(); }
 
         // ── Init ──────────────────────────────────────────────────────────────
-        function initCustomCursor() {
-            const container = document.createElement('div');
-            container.className = 'custom-cursor-container';
-            
-            const cursor = document.createElement('div');
-            cursor.className = 'custom-cursor';
-            cursor.innerHTML = `
-                <div class="cursor-ghost"></div>
-                <div class="cursor-ring"></div>
-                <div class="cursor-dot"></div>
-            `;
-            
-            container.appendChild(cursor);
-            document.body.appendChild(container);
-
-            let mouseX = 0, mouseY = 0;
-            let cursorX = 0, cursorY = 0;
-
-            document.addEventListener('mousemove', (e) => {
-                mouseX = e.clientX;
-                mouseY = e.clientY;
-            });
-
-            function animate() {
-                const easing = 0.15;
-                cursorX += (mouseX - cursorX) * easing;
-                cursorY += (mouseY - cursorY) * easing;
-                cursor.style.left = `${cursorX}px`;
-                cursor.style.top = `${cursorY}px`;
-                requestAnimationFrame(animate);
-            }
-            animate();
-
-            setInterval(() => {
-                if (Math.random() > 0.85) {
-                    cursor.classList.add('glitch-active');
-                    setTimeout(() => cursor.classList.remove('glitch-active'), 150);
-                }
-                if (Math.random() > 0.95) {
-                    cursor.classList.add('flicker-active');
-                    setTimeout(() => cursor.classList.remove('flicker-active'), 80);
-                }
-            }, 500);
-
-            document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
-            document.addEventListener('mouseup', () => cursor.classList.remove('clicking'));
-
-            const updateHoverables = () => {
-                const hoverables = document.querySelectorAll('a, button, .drop-zone, .tab-button, input, .mode-btn, .act-btn, .page-btn');
-                hoverables.forEach(el => {
-                    if (el.dataset.cursorBound) return;
-                    el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-                    el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-                    el.dataset.cursorBound = "true";
-                });
-            };
-            
-            updateHoverables();
-            const observer = new MutationObserver(updateHoverables);
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-
-        initCustomCursor();
         fetchDashboard();
         // Poll for updates every 5 seconds for "real-time" feel
         setInterval(fetchDashboard, 5000);

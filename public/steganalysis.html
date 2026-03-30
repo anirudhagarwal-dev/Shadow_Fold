@@ -9,14 +9,44 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         body { overflow-y: auto; align-items: flex-start; padding-top: 80px; }
-        .page-wrap { position: relative; z-index: 1; max-width: 1200px; width: 95vw; margin: 0 auto 70px; }
         
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: calc(100vh - 80px);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .glass-card {
+            background: radial-gradient(circle at top left, rgba(20, 10, 10, 0.85) 0%, rgba(10, 10, 10, 0.75) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 0, 51, 0.15);
+            border-radius: 8px; 
+            padding: 2rem 3rem;
+            width: 95vw;
+            max-width: 1200px;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 0, 51, 0.05);
+            position: relative;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
+            opacity: 0.2;
+        }
+
         .section-header { 
-            margin: 40px 0 20px; 
-            padding-bottom: 10px; 
+            margin: 30px 0 15px; 
+            padding-bottom: 8px; 
             border-bottom: 1px solid rgba(255,0,51,0.15);
             font-family: var(--font-primary);
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: var(--primary-color);
             letter-spacing: 0.2em;
             text-transform: uppercase;
@@ -24,19 +54,19 @@
 
         /* Live Analysis Grid */
         .analysis-grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; margin-bottom: 40px; }
-        .control-panel { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 12px; padding: 24px; height: fit-content; }
-        .result-panel { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 12px; padding: 24px; min-height: 500px; position: relative; }
+        .control-panel { background: rgba(255,0,51,0.02); border: 1px solid rgba(255,0,51,0.15); border-radius: 8px; padding: 24px; height: fit-content; }
+        .result-panel { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,0,51,0.1); border-radius: 8px; padding: 24px; min-height: 500px; position: relative; }
         
         /* Bit Planes */
         .bit-plane-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
-        .bit-plane-card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px; text-align: center; }
+        .bit-plane-card { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.03); border-radius: 6px; padding: 10px; text-align: center; }
         .bit-plane-card canvas { width: 100%; height: auto; border-radius: 4px; border: 1px solid rgba(255,0,51,0.1); margin-top: 8px; image-rendering: pixelated; }
-        .bit-plane-card span { font-family: var(--font-secondary); font-size: 0.65rem; color: #666; letter-spacing: 0.1em; text-transform: uppercase; }
+        .bit-plane-card span { font-family: var(--font-secondary); font-size: 0.75rem; color: var(--text-secondary); letter-spacing: 0.1em; text-transform: uppercase; }
 
         .analysis-btn {
             width: 100%; padding: 12px; margin-top: 20px;
             background: rgba(255,0,51,0.06); border: 1px solid rgba(255,0,51,0.3);
-            color: var(--primary-color); font-family: var(--font-primary); font-size: 0.75rem;
+            color: var(--primary-color); font-family: var(--font-primary); font-size: 0.85rem;
             letter-spacing: 0.15em; border-radius: 4px; cursor: pointer; transition: all 0.3s;
         }
         .analysis-btn:hover:not(:disabled) { background: rgba(255,0,51,0.15); box-shadow: 0 0 15px rgba(255,0,51,0.2); }
@@ -45,41 +75,41 @@
         .plane-select { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
         .plane-option {
             padding: 8px; border: 1px solid rgba(255,255,255,0.05); border-radius: 4px;
-            text-align: center; font-family: var(--font-secondary); font-size: 0.65rem;
-            color: #555; cursor: pointer; transition: all 0.2s;
+            text-align: center; font-family: var(--font-secondary); font-size: 0.7rem;
+            color: var(--text-muted); cursor: pointer; transition: all 0.2s;
         }
         .plane-option.active { border-color: var(--primary-color); color: var(--primary-color); background: rgba(255,0,51,0.05); }
 
         #main-analysis-canvas { width: 100%; height: auto; max-height: 70vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(255,0,51,0.15); display: none; }
-        .empty-state { height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #333; font-family: var(--font-secondary); text-align: center; }
+        .empty-state { height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-family: var(--font-secondary); text-align: center; }
         
         /* Demo Section */
         .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
-        .demo-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 10px; padding: 24px; }
-        .demo-card.danger-card { border-color: rgba(255,0,51,0.3); }
-        .demo-card.safe-card { border-color: rgba(0,200,120,0.25); }
-        .card-title { font-family: var(--font-primary); font-size: .78rem; letter-spacing: .15em; margin-bottom: 6px; }
+        .demo-card { background: rgba(255,0,51,0.02); border: 1px solid rgba(255,0,51,0.15); border-radius: 10px; padding: 24px; }
+        .demo-card.danger-card { border-color: rgba(255,0,51,0.3); background: rgba(255,0,51,0.04); }
+        .demo-card.safe-card { border-color: rgba(0,200,120,0.25); background: rgba(0,200,120,0.02); }
+        .card-title { font-family: var(--font-primary); font-size: .85rem; letter-spacing: .15em; margin-bottom: 6px; }
         .danger-card .card-title { color: rgba(255,0,51,0.9); }
         .safe-card .card-title { color: rgba(0,200,120,0.85); }
-        .card-sub { font-family: var(--font-secondary); font-size: .66rem; color: #444; letter-spacing: .06em; margin-bottom: 16px; line-height: 1.6; }
+        .card-sub { font-family: var(--font-secondary); font-size: .75rem; color: var(--text-secondary); letter-spacing: .06em; margin-bottom: 16px; line-height: 1.6; }
         
         canvas.chart { width: 100%; height: 120px; display: block; border-radius: 6px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.04); }
         .chi-score { display: flex; justify-content: space-around; margin-top: 14px; }
         .chi-val { text-align: center; }
-        .chi-num { font-family: var(--font-primary); font-size: 1.3rem; margin-bottom: 4px; }
-        .chi-label { font-family: var(--font-secondary); font-size: .58rem; letter-spacing: .12em; color: #444; text-transform: uppercase; }
+        .chi-num { font-family: var(--font-primary); font-size: 1.5rem; margin-bottom: 4px; }
+        .chi-label { font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .12em; color: var(--text-muted); text-transform: uppercase; }
         .chi-detected { color: rgba(255,0,51,0.9); }
         .chi-safe { color: rgba(0,200,120,0.85); }
         
-        .verdict { margin-top: 14px; padding: 10px 14px; border-radius: 5px; font-family: var(--font-secondary); font-size: .68rem; letter-spacing: .06em; line-height: 1.5; }
+        .verdict { margin-top: 14px; padding: 10px 14px; border-radius: 5px; font-family: var(--font-secondary); font-size: .75rem; letter-spacing: .06em; line-height: 1.5; }
         .verdict.detected { background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.25); color: rgba(255,0,51,0.8); }
         .verdict.safe { background: rgba(0,200,120,0.06); border: 1px solid rgba(0,200,120,0.2); color: rgba(0,200,120,0.8); }
-        .verdict.pending { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: #444; }
+        .verdict.pending { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: var(--text-muted); }
 
-        .explainer { background: var(--card-background); border: 1px solid rgba(255,0,51,0.1); border-radius: 10px; padding: 28px 32px; }
-        .explainer h2 { font-family: var(--font-primary); font-size: .82rem; color: var(--primary-color); letter-spacing: .15em; margin-bottom: 16px; }
-        .explainer p { font-family: var(--font-secondary); font-size: .74rem; color: #555; line-height: 1.85; margin-bottom: 12px; }
-        .explainer code { background: rgba(255,0,51,0.1); padding: 2px 7px; border-radius: 3px; color: rgba(255,120,120,0.9); font-size: .7rem; }
+        .explainer { background: rgba(255,0,51,0.02); border: 1px solid rgba(255,0,51,0.1); border-radius: 10px; padding: 28px 32px; }
+        .explainer h2 { font-family: var(--font-primary); font-size: .9rem; color: var(--primary-color); letter-spacing: .15em; margin-bottom: 16px; }
+        .explainer p { font-family: var(--font-secondary); font-size: .8rem; color: var(--text-secondary); line-height: 1.85; margin-bottom: 12px; }
+        .explainer code { background: rgba(255,0,51,0.1); padding: 2px 7px; border-radius: 3px; color: var(--primary-color); font-size: .75rem; }
     </style>
 </head>
 <body>
@@ -98,11 +128,19 @@
         </div>
     </nav>
 
-    <div class="page-wrap">
-        <div class="page-header" style="text-align:center; margin-bottom:40px;">
-            <h1 style="font-family:var(--font-primary); color:var(--primary-color); letter-spacing:0.2em;">STEGANALYSIS HUB</h1>
-            <p style="color:#666; font-size:0.8rem; margin-top:10px;">EXAMINE SIGNALS · CALCULATE ENTROPY · EXPOSE THE VOID</p>
-        </div>
+    <div class="container">
+        <div class="glass-card">
+            <!-- Electric Moving Blades -->
+            <div class="electric-blade blade-tl"></div>
+            <div class="electric-blade blade-tr"></div>
+            <div class="electric-blade blade-bl"></div>
+            <div class="electric-blade blade-br"></div>
+
+            <div class="page-header" style="text-align:center; margin-bottom:30px;">
+                <div style="font-family:var(--font-secondary); font-size:0.6rem; color:#555; letter-spacing:3px; margin-bottom:5px;">◈ ADVANCED SIGNAL DIAGNOSTICS</div>
+                <h1 style="font-family:var(--font-primary); color:var(--primary-color); letter-spacing:0.2em; font-size: 2rem; text-shadow: 0 0 15px var(--primary-color);">STEGANALYSIS HUB</h1>
+                <p style="color:#666; font-size:0.7rem; margin-top:5px; letter-spacing: 0.1em;">EXAMINE SIGNALS · CALCULATE ENTROPY · EXPOSE THE VOID</p>
+            </div>
 
         <!-- SECTION 1: LIVE ANALYSIS -->
         <div class="section-header">01 // LIVE SIGNAL ANALYSIS</div>
@@ -229,7 +267,11 @@
             <p>Shadow Fold uses a password-seeded <strong>Mersenne Twister</strong> to shuffle pixel channels before writing. This scatters the data across the entire image, ensuring no detectable boundary exists. The result is statistically indistinguishable from natural sensor noise.</p>
         </div>
     </div>
+    </div>
 
+    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="shared.js"></script>
     <script src="steganalysis.js"></script>
 </body>
 </html>

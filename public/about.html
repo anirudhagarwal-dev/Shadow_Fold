@@ -8,114 +8,111 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        body { overflow-y: auto; align-items: flex-start; }
-
-        .nav-bar {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 40px;
-            background: rgba(13,13,13,0.94);
-            border-bottom: 1px solid rgba(255,0,51,0.18);
-            backdrop-filter: blur(8px);
+        .page-header { text-align: center; margin-bottom: 20px; animation: fadeIn .6s ease; width: 100%; }
+        .page-header h1 { 
+            font-family: var(--font-primary); 
+            font-size: 1.8rem; 
+            color: var(--primary-color); 
+            text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); 
+            letter-spacing: .15em; 
+            margin: 0;
         }
-        .nav-logo { font-family: var(--font-primary); font-size: .88rem; color: var(--primary-color); letter-spacing: .2em; text-decoration: none; text-shadow: 0 0 10px var(--primary-color); }
-        .nav-links { display: flex; gap: 28px; }
-        .nav-links a { font-family: var(--font-secondary); font-size: .72rem; color: #666; text-decoration: none; letter-spacing: .12em; text-transform: uppercase; transition: color .2s; }
-        .nav-links a:hover, .nav-links a.active { color: var(--primary-color); }
 
-        .page-wrap { position: relative; z-index: 1; max-width: 900px; width: 90vw; margin: 110px auto 70px; }
-
-        .page-header { text-align: center; margin-bottom: 54px; animation: fadeIn .6s ease; }
-        .page-header h1 { font-family: var(--font-primary); font-size: clamp(1.4rem,4vw,2rem); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); letter-spacing: .15em; }
-        .page-header p { font-family: var(--font-secondary); color: #555; font-size: .8rem; letter-spacing: .1em; margin-top: 10px; }
+        .scroll-content {
+            overflow-y: auto;
+            max-height: 65vh;
+            width: 100%;
+            padding-right: 10px;
+        }
 
         /* project intro */
         .intro-card {
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.14);
-            border-radius: 10px; padding: 30px 32px; margin-bottom: 40px;
+            background: rgba(255, 0, 51, 0.02); border: 1px solid rgba(255,0,51,0.14);
+            border-radius: 10px; padding: 20px; margin-bottom: 25px;
             animation: fadeIn .5s ease .1s both;
         }
-        .intro-card .label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .25em; color: rgba(255,0,51,.55); margin-bottom: 10px; }
-        .intro-card h2 { font-family: var(--font-primary); font-size: 1rem; color: #ddd; letter-spacing: .1em; margin-bottom: 14px; }
-        .intro-card p { font-family: var(--font-secondary); font-size: .8rem; color: #5a5a5a; line-height: 1.9; margin-bottom: 10px; }
+        .intro-card .label { font-family: var(--font-secondary); font-size: .6rem; letter-spacing: .25em; color: var(--primary-color); opacity: 0.6; margin-bottom: 8px; }
+        .intro-card h2 { font-family: var(--font-primary); font-size: 1rem; color: var(--text-color); letter-spacing: .1em; margin-bottom: 10px; }
+        .intro-card p { font-family: var(--font-secondary); font-size: .85rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: 8px; }
         .intro-card p:last-child { margin-bottom: 0; }
-        .intro-card strong { color: #999; }
+        .intro-card strong { color: var(--text-color); }
 
         /* hackathon badge */
         .hackathon-badge {
             display: inline-flex; align-items: center; gap: 12px;
             background: rgba(255,0,51,0.06); border: 1px solid rgba(255,0,51,0.25);
-            border-radius: 6px; padding: 12px 18px; margin-bottom: 40px;
+            border-radius: 6px; padding: 10px 15px; margin-bottom: 25px;
             animation: fadeIn .5s ease .15s both;
+            width: 100%;
         }
-        .badge-icon { font-size: 1.4rem; }
-        .badge-text { font-family: var(--font-secondary); font-size: .75rem; color: #777; }
-        .badge-text strong { font-family: var(--font-primary); color: var(--primary-color); font-size: .78rem; letter-spacing: .1em; display: block; margin-bottom: 2px; }
+        .badge-icon { font-size: 1.2rem; }
+        .badge-text { font-family: var(--font-secondary); font-size: .7rem; color: #777; }
+        .badge-text strong { font-family: var(--font-primary); color: var(--primary-color); font-size: .7rem; letter-spacing: .1em; display: block; margin-bottom: 2px; }
 
         /* tech stack */
-        .tech-section { margin-bottom: 44px; animation: fadeIn .5s ease .2s both; }
-        .section-title { font-family: var(--font-primary); font-size: .75rem; color: var(--primary-color); letter-spacing: .2em; margin-bottom: 18px; }
-        .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+        .tech-section { margin-bottom: 30px; animation: fadeIn .5s ease .2s both; }
+        .section-title { font-family: var(--font-primary); font-size: .7rem; color: var(--primary-color); letter-spacing: .2em; margin-bottom: 15px; text-transform: uppercase; }
+        .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
         .tech-card {
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
-            border-radius: 8px; padding: 16px 18px;
+            background: rgba(255, 0, 51, 0.01); border: 1px solid rgba(255,0,51,0.12);
+            border-radius: 8px; padding: 12px 15px;
             transition: border-color .2s, box-shadow .2s;
         }
         .tech-card:hover { border-color: rgba(255,0,51,0.35); box-shadow: 0 0 16px rgba(255,0,51,0.08); }
-        .tech-icon { font-size: 1.3rem; margin-bottom: 8px; }
-        .tech-name { font-family: var(--font-primary); font-size: .65rem; color: var(--primary-color); letter-spacing: .12em; margin-bottom: 4px; }
-        .tech-role { font-family: var(--font-secondary); font-size: .7rem; color: #4a4a4a; line-height: 1.5; }
+        .tech-icon { font-size: 1.1rem; margin-bottom: 6px; }
+        .tech-name { font-family: var(--font-primary); font-size: .6rem; color: var(--primary-color); letter-spacing: .12em; margin-bottom: 4px; }
+        .tech-role { font-family: var(--font-secondary); font-size: .65rem; color: #4a4a4a; line-height: 1.4; }
 
         /* team section */
-        .team-section { margin-bottom: 44px; animation: fadeIn .5s ease .3s both; }
-        .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+        .team-section { margin-bottom: 30px; animation: fadeIn .5s ease .3s both; }
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
         .team-card {
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.12);
-            border-radius: 10px; padding: 24px 20px; text-align: center;
+            background: rgba(255, 0, 51, 0.01); border: 1px solid rgba(255,0,51,0.12);
+            border-radius: 10px; padding: 15px; text-align: center;
             transition: border-color .25s, transform .25s, box-shadow .25s;
             cursor: default;
         }
         .team-card:hover { border-color: rgba(255,0,51,0.38); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(255,0,51,0.1); }
         .avatar {
-            width: 62px; height: 62px; border-radius: 50%;
+            width: 50px; height: 50px; border-radius: 50%;
             border: 1px solid rgba(255,0,51,0.3);
             background: rgba(255,0,51,0.07);
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; margin: 0 auto 14px;
+            font-size: 1.2rem; margin: 0 auto 10px;
             box-shadow: 0 0 12px rgba(255,0,51,0.15);
         }
-        .member-name { font-family: var(--font-primary); font-size: .72rem; color: #ddd; letter-spacing: .1em; margin-bottom: 5px; }
-        .member-role { font-family: var(--font-secondary); font-size: .68rem; color: var(--primary-color); letter-spacing: .08em; margin-bottom: 8px; }
-        .member-skills { font-family: var(--font-secondary); font-size: .65rem; color: #444; line-height: 1.6; }
+        .member-name { font-family: var(--font-primary); font-size: .75rem; color: var(--text-color); letter-spacing: .1em; margin-bottom: 3px; }
+        .member-role { font-family: var(--font-secondary); font-size: .7rem; color: var(--primary-color); letter-spacing: .08em; margin-bottom: 5px; }
+        .member-skills { font-family: var(--font-secondary); font-size: .7rem; color: var(--text-muted); line-height: 1.4; }
 
         /* problem & solution */
-        .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 44px; animation: fadeIn .5s ease .4s both; }
-        .ps-card { background: var(--card-background); border: 1px solid rgba(255,0,51,0.12); border-radius: 10px; padding: 22px 24px; }
-        .ps-label { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .22em; color: rgba(255,0,51,.55); margin-bottom: 8px; }
-        .ps-title { font-family: var(--font-primary); font-size: .78rem; color: #ccc; letter-spacing: .08em; margin-bottom: 12px; }
-        .ps-list { list-style: none; }
-        .ps-list li { font-family: var(--font-secondary); font-size: .75rem; color: #4a4a4a; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.6; }
+        .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px; animation: fadeIn .5s ease .4s both; }
+        .ps-card { background: rgba(255, 0, 51, 0.01); border: 1px solid rgba(255,0,51,0.12); border-radius: 10px; padding: 15px 18px; }
+        .ps-label { font-family: var(--font-secondary); font-size: .6rem; letter-spacing: .22em; color: var(--primary-color); opacity: 0.6; margin-bottom: 6px; }
+        .ps-title { font-family: var(--font-primary); font-size: .8rem; color: var(--text-color); letter-spacing: .08em; margin-bottom: 10px; }
+        .ps-list { list-style: none; padding: 0; }
+        .ps-list li { font-family: var(--font-secondary); font-size: .8rem; color: var(--text-secondary); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.5; }
         .ps-list li::before { content: '▸ '; color: var(--primary-color); }
 
         /* future roadmap */
-        .roadmap { animation: fadeIn .5s ease .5s both; }
-        .roadmap-list { display: flex; flex-direction: column; gap: 10px; }
+        .roadmap { animation: fadeIn .5s ease .5s both; margin-bottom: 20px; }
+        .roadmap-list { display: flex; flex-direction: column; gap: 8px; }
         .road-item {
-            display: flex; align-items: center; gap: 14px;
-            background: var(--card-background); border: 1px solid rgba(255,0,51,0.1);
-            border-radius: 8px; padding: 14px 18px;
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255, 0, 51, 0.01); border: 1px solid rgba(255,0,51,0.1);
+            border-radius: 8px; padding: 10px 15px;
             transition: border-color .2s;
         }
         .road-item:hover { border-color: rgba(255,0,51,.3); }
         .road-dot {
-            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+            width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
             border: 1px solid rgba(255,0,51,0.5);
         }
         .road-dot.done { background: var(--primary-color); box-shadow: 0 0 6px var(--primary-color); }
         .road-dot.active { background: rgba(255,170,0,0.8); box-shadow: 0 0 6px rgba(255,170,0,0.6); border-color: rgba(255,170,0,0.6); }
-        .road-text { font-family: var(--font-secondary); font-size: .76rem; color: #555; flex: 1; }
-        .road-text strong { color: #888; font-family: var(--font-primary); font-size: .64rem; letter-spacing: .08em; }
-        .road-tag { font-family: var(--font-secondary); font-size: .62rem; letter-spacing: .12em; padding: 3px 8px; border-radius: 3px; flex-shrink: 0; }
+        .road-text { font-family: var(--font-secondary); font-size: .7rem; color: #555; flex: 1; }
+        .road-text strong { color: #888; font-family: var(--font-primary); font-size: .6rem; letter-spacing: .08em; }
+        .road-tag { font-family: var(--font-secondary); font-size: .55rem; letter-spacing: .12em; padding: 2px 6px; border-radius: 3px; flex-shrink: 0; }
         .road-tag.done { color: var(--primary-color); background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.2); }
         .road-tag.wip { color: rgba(255,170,0,0.8); background: rgba(255,170,0,0.06); border: 1px solid rgba(255,170,0,0.2); }
         .road-tag.planned { color: #444; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }
@@ -127,9 +124,6 @@
     </style>
 </head>
 <body>
-    <div class="crt-scanline"></div>
-    <div id="animated-bg"></div>
-
     <nav class="nav-bar">
         <a class="nav-logo" href="index.html">SHADOW FOLD</a>
         <div class="nav-links">
@@ -142,112 +136,115 @@
         </div>
     </nav>
 
-    <div class="page-wrap">
-        <div class="page-header">
-            <h1>ABOUT</h1>
-        </div>
+    <div class="crt-scanline"></div>
+    <div id="animated-bg"></div>
 
-        <div class="hackathon-badge">
-            <div class="badge-icon">⚡</div>
-            <div class="badge-text">
-                <strong>BUILD WITH TRAE</strong>
-                Problem Statement: Secure Data Privacy in the Surveillance Era &nbsp;·&nbsp; Theme: Cybersecurity / Privacy (Software)
+    <div class="container">
+        <div class="glass-card">
+            <!-- Electric Moving Blades -->
+            <div class="electric-blade blade-tl"></div>
+            <div class="electric-blade blade-tr"></div>
+            <div class="electric-blade blade-bl"></div>
+            <div class="electric-blade blade-br"></div>
+
+            <div class="page-header">
+                <h1>ABOUT</h1>
             </div>
-        </div>
 
-        <div class="intro-card">
-            <div class="label">Project Overview</div>
-            <h2>SHADOW FOLD — THE VISUAL VOID</h2>
-            <p>In an era of mass surveillance, <strong>encrypted files invite suspicion</strong>. The moment a file is flagged as encrypted, it becomes a target. Shadow Fold takes a different approach — it makes the secret file <strong>invisible</strong>.</p>
-            <p>Using steganography, any file can be concealed inside an ordinary image. To anyone observing, it's just a photo. Only someone with the exact password can reveal what lives inside — in the void between the pixels.</p>
-        </div>
+            <div class="scroll-content">
+                <div class="hackathon-badge">
+                    <div class="badge-icon">⚡</div>
+                    <div class="badge-text">
+                        <strong>BUILD WITH TRAE</strong>
+                        Problem: Secure Privacy in the Surveillance Era &nbsp;·&nbsp; Theme: Cybersecurity / Privacy
+                    </div>
+                </div>
 
-        <div class="ps-grid">
-            <div class="ps-card">
-                <div class="ps-label">Problem</div>
-                <div class="ps-title">WHY ENCRYPTION ISN'T ENOUGH</div>
-                <ul class="ps-list">
-                    <li>Encrypted files flag surveillance systems</li>
-                    <li>Metadata reveals that secrets exist</li>
-                    <li>Coercive environments demand plausible deniability</li>
-                    <li>Journalists, activists, enterprises at risk</li>
-                </ul>
-            </div>
-            <div class="ps-card">
-                <div class="ps-label">Solution</div>
-                <div class="ps-title">INVISIBLE DATA PROTECTION</div>
-                <ul class="ps-list">
-                    <li>Hides any file inside a carrier image</li>
-                    <li>Password-seeded PRNG scatters the data</li>
-                    <li>Output looks identical to the original</li>
-                    <li>Wrong password returns silence, not error</li>
-                </ul>
-            </div>
-        </div>
+                <div class="intro-card">
+                    <div class="label">Project Overview</div>
+                    <h2>SHADOW FOLD — THE VISUAL VOID</h2>
+                    <p>In an era of mass surveillance, <strong>encrypted files invite suspicion</strong>. Shadow Fold takes a different approach — it makes the secret file <strong>invisible</strong>.</p>
+                    <p>Using steganography, any file can be concealed inside an ordinary image. Only someone with the exact password can reveal what lives inside — in the void between the pixels.</p>
+                </div>
 
-        <div class="tech-section">
-            <div class="section-title">TECH STACK</div>
-            <div class="tech-grid">
-                <div class="tech-card"><div class="tech-icon">⚙️</div><div class="tech-name">C++</div><div class="tech-role">Core LSB encoding/decoding logic compiled via Emscripten</div></div>
-                <div class="tech-card"><div class="tech-icon">🔷</div><div class="tech-name">WebAssembly</div><div class="tech-role">Near-native performance for pixel-level operations in browser</div></div>
-                <div class="tech-card"><div class="tech-icon">🎨</div><div class="tech-name">Canvas API</div><div class="tech-role">Raw RGBA pixel extraction and stego image output</div></div>
-                <div class="tech-card"><div class="tech-icon">🌐</div><div class="tech-name">JavaScript</div><div class="tech-role">UI layer, PRNG shuffle, file I/O, WASM bridge</div></div>
-                <div class="tech-card"><div class="tech-icon">🖥️</div><div class="tech-name">Node / Express</div><div class="tech-role">Local dev server and WASM module serving</div></div>
-                <div class="tech-card"><div class="tech-icon">🔒</div><div class="tech-name">FNV-1a + Mulberry32</div><div class="tech-role">Password hashing and PRNG for pixel order shuffle</div></div>
-            </div>
-        </div>
+                <div class="ps-grid">
+                    <div class="ps-card">
+                        <div class="ps-label">Problem</div>
+                        <div class="ps-title">ENCRYPTION ISN'T ENOUGH</div>
+                        <ul class="ps-list">
+                            <li>Encrypted files flag surveillance systems</li>
+                            <li>Metadata reveals that secrets exist</li>
+                            <li>Coercive environments demand deniability</li>
+                            <li>Journalists, activists, enterprises at risk</li>
+                        </ul>
+                    </div>
+                    <div class="ps-card">
+                        <div class="ps-label">Solution</div>
+                        <div class="ps-title">INVISIBLE DATA PROTECTION</div>
+                        <ul class="ps-list">
+                            <li>Hides any file inside a carrier image</li>
+                            <li>Password-seeded PRNG scatters the data</li>
+                            <li>Output looks identical to the original</li>
+                            <li>Wrong password returns silence, not error</li>
+                        </ul>
+                    </div>
+                </div>
 
-        <div class="team-section">
-            <div class="section-title">TEAM VORTEX-1</div>
-            <div class="team-grid" id="team-grid">
-                
-            </div>
-        </div>
+                <div class="tech-section">
+                    <div class="section-title">TECH STACK</div>
+                    <div class="tech-grid">
+                        <div class="tech-card"><div class="tech-icon">⚙️</div><div class="tech-name">C++</div><div class="tech-role">Core LSB logic compiled via Emscripten</div></div>
+                        <div class="tech-card"><div class="tech-icon">🔷</div><div class="tech-name">WebAssembly</div><div class="tech-role">Near-native pixel operations in browser</div></div>
+                        <div class="tech-card"><div class="tech-icon">🎨</div><div class="tech-name">Canvas API</div><div class="tech-role">Raw RGBA pixel extraction and output</div></div>
+                        <div class="tech-card"><div class="tech-icon">🌐</div><div class="tech-name">JavaScript</div><div class="tech-role">UI layer, PRNG shuffle, WASM bridge</div></div>
+                        <div class="tech-card"><div class="tech-icon">🖥️</div><div class="tech-name">Node / Express</div><div class="tech-role">Local dev server and module serving</div></div>
+                        <div class="tech-card"><div class="tech-icon">🔒</div><div class="tech-name">PBKDF2 + AES</div><div class="tech-role">Secure key derivation and payload protection</div></div>
+                    </div>
+                </div>
 
-        <div class="roadmap">
-            <div class="section-title">ROADMAP</div>
-            <div class="roadmap-list">
-                <div class="road-item">
-                    <div class="road-dot done"></div>
-                    <div class="road-text"><strong>LSB STEGANOGRAPHY ENGINE</strong><br>Password-seeded PRNG pixel shuffle with C++ / Wasm core</div>
-                    <div class="road-tag done">SHIPPED</div>
+                <div class="team-section">
+                    <div class="section-title">TEAM VORTEX-1</div>
+                    <div class="team-grid" id="team-grid">
+                        <!-- Team injected by script -->
+                    </div>
                 </div>
-                <div class="road-item">
-                    <div class="road-dot done"></div>
-                    <div class="road-text"><strong>ANY FILE TYPE SUPPORT</strong><br>Hide PDFs, ZIPs, images — not just text</div>
-                    <div class="road-tag done">SHIPPED</div>
-                </div>
-                <div class="road-item">
-                    <div class="road-dot done"></div>
-                    <div class="road-text"><strong>CAPACITY METER</strong><br>Live red/green indicator showing how much of the image is used</div>
-                    <div class="road-tag done">SHIPPED</div>
-                </div>
-                <div class="road-item">
-                    <div class="road-dot active"></div>
-                    <div class="road-text"><strong>AES-256 ENCRYPTION LAYER</strong><br>Encrypt payload before LSB injection for dual-layer security</div>
-                    <div class="road-tag wip">IN PROGRESS</div>
-                </div>
-                <div class="road-item">
-                    <div class="road-dot"></div>
-                    <div class="road-text"><strong>STEGANALYSIS RESISTANCE</strong><br>Adaptive LSB to resist statistical detection tools like StegExpose</div>
-                    <div class="road-tag planned">PLANNED</div>
-                </div>
-                <div class="road-item">
-                    <div class="road-dot"></div>
-                    <div class="road-text"><strong>DUAL-PASSWORD DECOY MODE</strong><br>"Upside Down" mode — one password shows decoy data, another reveals real data</div>
-                    <div class="road-tag planned">PLANNED</div>
+
+                <div class="roadmap">
+                    <div class="section-title">ROADMAP</div>
+                    <div class="roadmap-list">
+                        <div class="road-item">
+                            <div class="road-dot done"></div>
+                            <div class="road-text"><strong>LSB STEGANOGRAPHY ENGINE</strong><br>Password-seeded PRNG pixel shuffle with C++ core</div>
+                            <div class="road-tag done">SHIPPED</div>
+                        </div>
+                        <div class="road-item">
+                            <div class="road-dot done"></div>
+                            <div class="road-text"><strong>ANY FILE TYPE SUPPORT</strong><br>Hide PDFs, ZIPs, images — not just text</div>
+                            <div class="road-tag done">SHIPPED</div>
+                        </div>
+                        <div class="road-item">
+                            <div class="road-dot done"></div>
+                            <div class="road-text"><strong>DUAL LAYER MODE</strong><br>Plausible deniability via real/decoy passwords</div>
+                            <div class="road-tag done">SHIPPED</div>
+                        </div>
+                        <div class="road-item">
+                            <div class="road-dot active"></div>
+                            <div class="road-text"><strong>STEGANALYSIS RESISTANCE</strong><br>Adaptive LSB to resist statistical detection</div>
+                            <div class="road-tag wip">IN PROGRESS</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="script.js"></script>
     <script>
-        // Edit your team members here
         const team = [
-            { emoji: '💀', name: 'Anirudh', role: 'Team Lead', skills: 'C++ · WebAssembly · Steganography' },
-            { emoji: '🔐', name: 'Shivanshu', role: 'Backend / WASM', skills: 'Emscripten · LSB Engine · Crypto' },
-            { emoji: '🎨', name: 'Aditya',role: 'Frontend', skills: 'JS · Canvas API · UI/UX' },
-            { emoji: '⚡', name: 'Abhay', role: 'Security Research', skills: 'PRNG · Steganalysis · Testing' },
+            { emoji: '💀', name: 'Anirudh', role: 'Team Lead', skills: 'C++ · Wasm · Stegano' },
+            { emoji: '🔐', name: 'Shivanshu', role: 'Backend / WASM', skills: 'Emscripten · LSB · Crypto' },
+            { emoji: '🎨', name: 'Aditya',role: 'Frontend', skills: 'JS · Canvas · UI/UX' },
+            { emoji: '⚡', name: 'Abhay', role: 'Security Research', skills: 'PRNG · Testing' },
         ];
 
         const grid = document.getElementById('team-grid');
@@ -260,69 +257,6 @@
                     <div class="member-skills">${m.skills}</div>
                 </div>`;
         });
-
-        function initCustomCursor() {
-            const container = document.createElement('div');
-            container.className = 'custom-cursor-container';
-            
-            const cursor = document.createElement('div');
-            cursor.className = 'custom-cursor';
-            cursor.innerHTML = `
-                <div class="cursor-ghost"></div>
-                <div class="cursor-ring"></div>
-                <div class="cursor-dot"></div>
-            `;
-            
-            container.appendChild(cursor);
-            document.body.appendChild(container);
-
-            let mouseX = 0, mouseY = 0;
-            let cursorX = 0, cursorY = 0;
-
-            document.addEventListener('mousemove', (e) => {
-                mouseX = e.clientX;
-                mouseY = e.clientY;
-            });
-
-            function animate() {
-                const easing = 0.15;
-                cursorX += (mouseX - cursorX) * easing;
-                cursorY += (mouseY - cursorY) * easing;
-                cursor.style.left = `${cursorX}px`;
-                cursor.style.top = `${cursorY}px`;
-                requestAnimationFrame(animate);
-            }
-            animate();
-
-            setInterval(() => {
-                if (Math.random() > 0.85) {
-                    cursor.classList.add('glitch-active');
-                    setTimeout(() => cursor.classList.remove('glitch-active'), 150);
-                }
-                if (Math.random() > 0.95) {
-                    cursor.classList.add('flicker-active');
-                    setTimeout(() => cursor.classList.remove('flicker-active'), 80);
-                }
-            }, 500);
-
-            document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
-            document.addEventListener('mouseup', () => cursor.classList.remove('clicking'));
-
-            const updateHoverables = () => {
-                const hoverables = document.querySelectorAll('a, button, .drop-zone, .tab-button, input, .mode-btn, .road-item, .team-card');
-                hoverables.forEach(el => {
-                    if (el.dataset.cursorBound) return;
-                    el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-                    el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-                    el.dataset.cursorBound = "true";
-                });
-            };
-            updateHoverables();
-            const observer = new MutationObserver(updateHoverables);
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-
-        initCustomCursor();
     </script>
 </body>
 </html>
