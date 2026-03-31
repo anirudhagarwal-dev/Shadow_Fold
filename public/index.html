@@ -91,9 +91,9 @@
                     <div class="panel">
                         <h3>Secret Payload</h3>
                         <div id="payload-pack-zone" class="drop-zone">
-                            <p>↑ Drop files here, or click to add</p>
+                            <p>Drop ANY file to hide — images, PDFs, audio, video, documents, archives</p>
                             <p style="font-size: 0.6rem; opacity: 0.5; margin-top: 5px;">Supports multiple files</p>
-                            <input type="file" id="secret-file-input" multiple hidden>
+                            <input type="file" id="secret-file-input" multiple hidden accept="*/*">
                         </div>
 
                         <div id="pack-summary" style="margin-top: 12px; font-family: var(--font-secondary); font-size: 0.65rem; color: #888; display: none;">
@@ -106,6 +106,7 @@
                         <div id="pack-mode-badge" class="mode-badge" style="display: none;">
                             ◈ MULTI-PACK MODE — bundled as .sfpack
                         </div>
+                        <div id="compression-mode-indicator" class="compression-indicator"></div>
 
                         <div class="password-container" style="margin-top: 20px;">
                             <input type="password" id="encode-password" placeholder="Real Frequency (Password)">
@@ -162,6 +163,7 @@
                         <span class="deco-bracket">]</span>
                     </div>
                     <button id="encode-button" class="action-button" style="margin-top: 10px;">FOLD REALITY</button>
+                    <div id="capacity-warning" class="capacity-warning"></div>
                     <div id="encode-stats" class="stats-container"></div>
                 </div>
             </main>
@@ -173,7 +175,7 @@
                         <div id="decode-image-drop-zone" class="drop-zone">
                             <p>Drag & Drop Encoded Image or Click to Upload</p>
                             <input type="file" id="decode-image-input" accept="image/png" hidden>
-                            <img id="decode-image-preview" class="preview-thumb" src="" alt="Encoded Image Preview">
+                            <img id="decode-image-preview" class="preview-thumb" src="" alt="Encoded Image Preview" style="display:none; max-width:100%; border-radius:4px; margin-top:8px;">
                         </div>
 
                         <div id="decode-mode-selector" class="mode-selector" style="margin-top: 20px;">

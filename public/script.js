@@ -136,22 +136,26 @@ function initCustomCursor() {
 
     let mouseX = 0, mouseY = 0;
     let cursorX = 0, cursorY = 0;
-    let isMoving = false;
 
+    // Use passive listener for better performance
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-        isMoving = true;
-    });
+    }, { passive: true });
 
-    // Smooth follow using requestAnimationFrame
+    // Optimized smooth follow using transform: translate3d (GPU accelerated)
     function animate() {
         const easing = 0.15;
-        cursorX += (mouseX - cursorX) * easing;
-        cursorY += (mouseY - cursorY) * easing;
-        
-        cursor.style.left = `${cursorX}px`;
-        cursor.style.top = `${cursorY}px`;
+        const dx = mouseX - cursorX;
+        const dy = mouseY - cursorY;
+
+        // Threshold to stop animating if we're close enough (saves CPU)
+        if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+            cursorX += dx * easing;
+            cursorY += dy * easing;
+            // translate3d is more efficient than top/left, plus we keep the centering transform
+            cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0) translate(-50%, -50%)`;
+        }
         
         requestAnimationFrame(animate);
     }
@@ -173,20 +177,21 @@ function initCustomCursor() {
     document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
     document.addEventListener('mouseup', () => cursor.classList.remove('clicking'));
 
-    const updateHoverables = () => {
-        const hoverables = document.querySelectorAll('a, button, .drop-zone, .tab-button, input, .mode-btn');
-        hoverables.forEach(el => {
-            if (el.dataset.cursorBound) return;
-            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-            el.dataset.cursorBound = "true";
-        });
-    };
-    updateHoverables();
-    
-    // Watch for dynamic elements
-    const observer = new MutationObserver(updateHoverables);
-    observer.observe(document.body, { childList: true, subtree: true });
+    // Use event delegation for hover states instead of MutationObserver/querySelectorAll
+    // This is MUCH more efficient
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('a, button, .drop-zone, .tab-button, input, .mode-btn');
+        if (target) {
+            cursor.classList.add('hover');
+        }
+    }, { passive: true });
+
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('a, button, .drop-zone, .tab-button, input, .mode-btn');
+        if (target) {
+            cursor.classList.remove('hover');
+        }
+    }, { passive: true });
 }
 
 // ==============================
@@ -233,6 +238,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initDynamicHUD();
     // Multi-File Pack State
     window.SF_PackFiles = [];
+
+    window.SFLog = {
+        add: function(data) {
+            trackOperation(data);
+        }
+    };
 
     // --- Tabs ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -401,18 +412,22 @@ function renderPackList() {
         const ext = f.file.name.split('.').pop().toLowerCase();
         let emoji = '📎';
         if (['pdf'].includes(ext)) emoji = '📄';
-        else if (['jpg', 'jpeg', 'png', 'bmp', 'gif', 'webp'].includes(ext)) emoji = '🖼';
-        else if (['txt', 'md', 'rtf'].includes(ext)) emoji = '📝';
+        else if (['docx', 'doc', 'odt'].includes(ext)) emoji = '📝';
+        else if (['pptx', 'ppt', 'odp'].includes(ext)) emoji = '📊';
+        else if (['xlsx', 'xls', 'csv'].includes(ext)) emoji = '�';
+        else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) emoji = '�';
+        else if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) emoji = '🎵';
+        else if (['mp4', 'mkv', 'mov', 'avi', 'webm'].includes(ext)) emoji = '🎬';
         else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) emoji = '📦';
-        else if (['mp4', 'mkv', 'mov', 'avi'].includes(ext)) emoji = '🎬';
-        else if (['mp3', 'wav', 'flac', 'ogg'].includes(ext)) emoji = '🎵';
+        else if (['txt', 'md', 'rtf'].includes(ext)) emoji = '📝';
+
 
         return `
             <div class="pack-item" data-id="${f.id}">
                 <div class="pack-item-info">
                     <span>${emoji}</span>
                     <span class="pack-item-name" title="${f.file.name}">${f.file.name}</span>
-                    <span class="pack-item-size">${formatBytes(f.file.size)}</span>
+                    <span class="pack-item-size">${f.originalSize ? `${formatBytes(f.originalSize)} → ${formatBytes(f.file.size)}` : formatBytes(f.file.size)}</span>
                 </div>
                 <div class="pack-item-remove" onclick="removePackFile('${f.id}')">[✕]</div>
             </div>
@@ -426,18 +441,96 @@ window.removePackFile = function(id) {
     updateCapacity();
 };
 
+async function compressImage(file, maxSizeBytes) { 
+    if (file.size <= maxSizeBytes) return { file, originalSize: null }; 
+    return new Promise(resolve => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            const MAX_DIM = 1920;
+            if (w > MAX_DIM || h > MAX_DIM) {
+                const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+            }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            let quality = 0.85;
+            const originalSize = file.size;
+            const tryCompress = () => {
+                canvas.toBlob(blob => {
+                    if (!blob) { resolve({ file, originalSize: null }); return; }
+                    if (blob.size <= maxSizeBytes || quality <= 0.35) {
+                        resolve({
+                            file: new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }),
+                            originalSize
+                        });
+                    } else {
+                        quality -= 0.15;
+                        tryCompress();
+                    }
+                }, 'image/jpeg', quality);
+            };
+            tryCompress();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve({ file, originalSize: null }); };
+        img.src = url;
+    });
+}
+
 // ==============================
 // MULTI-FILE PACKING LOGIC
 // ==============================
 async function buildSecretPayload() {
     const files = window.SF_PackFiles || [];
     if (files.length === 0) return null;
-     
+
+    // Show advisory for large non-image files
+    const totalSize = files.reduce((a, f) => a + f.file.size, 0);
+    const audioExts = ['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'];
+    const videoExts = ['mp4', 'mkv', 'mov', 'avi', 'webm'];
+    const docExts = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls'];
+    const ext0 = files[0]?.file.name.split('.').pop().toLowerCase();
+    const warningEl = document.getElementById('capacity-warning');
+    if (warningEl) {
+        if (videoExts.includes(ext0) && totalSize > 5 * 1024 * 1024) {
+            const minPixels = Math.ceil((totalSize * 8) / 3);
+            const minMP = (minPixels / 1000000).toFixed(1);
+            warningEl.textContent = `⚠ Video is large (${formatBytes(totalSize)}). Carrier image must be at least ${minMP}MP. Use a high-resolution PNG.`;
+            warningEl.style.display = 'block';
+        } else if (audioExts.includes(ext0) && totalSize > 2 * 1024 * 1024) {
+            warningEl.textContent = `ℹ Audio file is large. Consider converting to MP3 128kbps first for best results.`;
+            warningEl.style.display = 'block';
+        } else if (docExts.includes(ext0) && totalSize > 1 * 1024 * 1024) {
+            const minPixels = Math.ceil((totalSize * 8) / 3);
+            const minMP = (minPixels / 1000000).toFixed(1);
+            warningEl.textContent = `ℹ Large document (${formatBytes(totalSize)}). Carrier image needs ~${minMP}MP minimum.`;
+            warningEl.style.display = 'block';
+        } else {
+            warningEl.style.display = 'none';
+        }
+    }
+
     if (files.length === 1) {
-        // Single file — pass through directly, no zip
-        const bytes = new Uint8Array(await files[0].file.arrayBuffer());
-        const ext = files[0].file.name.split('.').pop().toLowerCase();
-        return { bytes, ext };
+        let fileEntry = files[0];
+        const ext = fileEntry.file.name.split('.').pop().toLowerCase();
+        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+        if (imageExts.includes(ext) && fileEntry.file.size > 500 * 1024) {
+            const compressed = await compressImage(fileEntry.file, 500 * 1024);
+            if (compressed.originalSize) {
+                // Update the pack list to show compression happened
+                window.SF_PackFiles[0].originalSize = compressed.originalSize;
+                window.SF_PackFiles[0].file = compressed.file;
+                renderPackList();
+            }
+            fileEntry = { file: compressed.file, id: fileEntry.id };
+        }
+        const bytes = new Uint8Array(await fileEntry.file.arrayBuffer());
+        const finalExt = fileEntry.file.name.split('.').pop().toLowerCase();
+        return { bytes, ext: finalExt };
     }
      
     // Multi-file: build in-memory zip using fflate
@@ -683,6 +776,16 @@ function updateCapacity() {
         }
 
         const pct = maxBytes > 0 ? Math.min(100, Math.round((usedBytes / maxBytes) * 100)) : 100;
+
+        const capacityWarning = document.getElementById('capacity-warning');
+        if (capacityWarning) {
+            if (pct > 100) {
+                capacityWarning.textContent = '⚠ Payload too large for this carrier image. Use a larger PNG or compress first.';
+                capacityWarning.style.display = 'block';
+            } else {
+                capacityWarning.style.display = 'none';
+            }
+        }
 
         if (capacityPct)  capacityPct.textContent  = `${pct}%`;
         if (capacityMax)  capacityMax.textContent  = `/ ${formatBytes(maxBytes)}`;
@@ -974,6 +1077,9 @@ async function handleDecode() {
         canvas.height = imageBitmap.height;
         ctx.drawImage(imageBitmap, 0, 0);
 
+        if (!canvas.width || !canvas.height) {
+             throw new Error('Canvas dimensions are zero — image may not have loaded correctly.');
+        }
         const imageData  = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
         // Pass the ClampedArray directly to avoid an extra copy in JS.
@@ -995,7 +1101,7 @@ async function handleDecode() {
         } else if (wasmVer === 'v1') {
             // Mid build: decode_data_dual might exist, but if not fall back
             if (isDual && typeof mod.decode_data_dual === 'function') {
-                result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, 0, 0);
+                result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, canvas.width, canvas.height);
             } else {
                 result = mod.decode_data(imageBytes, password);
             }
@@ -1021,6 +1127,7 @@ async function handleDecode() {
         const fileExt  = result.extension || 'bin';
 
         const unpackResult = await unpackPayload(fileData, fileExt);
+        showDecodePreview(fileData, fileExt);
 
         // Clear password fields after use
         setTimeout(() => { 
@@ -1029,13 +1136,7 @@ async function handleDecode() {
             if (document.getElementById('decode-decoy-password')) document.getElementById('decode-decoy-password').value = '';
         }, 1500);
 
-        if (window.SFLog) window.SFLog.add({
-            type: 'decode', file: imageInput.files[0].name,
-            ext: fileExt, size: fileData.length,
-            carrier: imageInput.files[0].name,
-            capacity: 0,
-            status: 'ok'
-        });
+        try { trackOperation({ type: 'decode', file: imageInput.files[0].name, ext: fileExt, size: fileData.length, carrier: imageInput.files[0].name, capacity: 0, status: 'ok' }); } catch(e) {}
 
         const fileHash = await sha256hex(fileData);
 
@@ -1123,24 +1224,7 @@ function generateHeatmap(originalBytes, encodedBytes, width, height, isDual) {
     }
 }
 
-// ==============================
-// LOADER HELPERS
-// ==============================
-function showLoader(text) {
-    const loader = document.getElementById('loader');
-    const loaderText = document.getElementById('loader-text');
-    if (loader) {
-        if (loaderText && text) loaderText.textContent = text;
-        loader.classList.add('active');
-    }
-}
 
-function hideLoader() {
-    const loader = document.getElementById('loader');
-    if (loader) {
-        loader.classList.remove('active');
-    }
-}
 
 // ==============================
 // STRENGTH METER RESET HELPER

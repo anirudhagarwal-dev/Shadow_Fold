@@ -186,7 +186,23 @@
      <script src="build/steganography.js"></script> 
      <script> 
          let selectedKB = 200; 
-         let wasmReady = false; 
+         let wasmReady = false;
+
+        async function trackOperation(data) {
+            try {
+                await fetch('/api/operations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: data.type || 'benchmark',
+                        fileName: data.file || data.fileName || 'benchmark',
+                        fileSize: Number(data.size || data.fileSize || 0),
+                        status: data.status === 'ok' ? 'success' : (data.status === 'success' ? 'success' : 'fail'),
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch(e) { console.warn('Tracking failed:', e); }
+        } 
   
          // Wait for WASM 
          if (window.Module) { 

@@ -19,47 +19,61 @@ function initCustomCursor() {
     let mouseX = 0, mouseY = 0;
     let cursorX = 0, cursorY = 0;
 
+    // Use passive listener for better performance
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-    });
+    }, { passive: true });
 
+    // Optimized smooth follow using transform: translate3d (GPU accelerated)
     function animate() {
         const easing = 0.15;
-        cursorX += (mouseX - cursorX) * easing;
-        cursorY += (mouseY - cursorY) * easing;
-        cursor.style.left = `${cursorX}px`;
-        cursor.style.top = `${cursorY}px`;
+        const dx = mouseX - cursorX;
+        const dy = mouseY - cursorY;
+
+        // Threshold to stop animating if we're close enough (saves CPU)
+        if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+            cursorX += dx * easing;
+            cursorY += dy * easing;
+            // translate3d is more efficient than top/left, plus we keep the centering transform
+            cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0) translate(-50%, -50%)`;
+        }
+        
         requestAnimationFrame(animate);
     }
     animate();
 
+    // Glitch logic: Jitter and Flicker
     setInterval(() => {
-        if (Math.random() > 0.85) {
+        if (Math.random() > 0.85) { // 15% chance to glitch
             cursor.classList.add('glitch-active');
-            setTimeout(() => cursor.classList.remove('glitch-active'), 150);
+            setTimeout(() => cursor.classList.remove('glitch-active'), 100 + Math.random() * 200);
         }
-        if (Math.random() > 0.95) {
+        
+        if (Math.random() > 0.95) { // 5% chance to flicker
             cursor.classList.add('flicker-active');
-            setTimeout(() => cursor.classList.remove('flicker-active'), 80);
+            setTimeout(() => cursor.classList.remove('flicker-active'), 50 + Math.random() * 100);
         }
     }, 500);
 
     document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
     document.addEventListener('mouseup', () => cursor.classList.remove('clicking'));
 
-    const updateHoverables = () => {
-        const hoverables = document.querySelectorAll('a, button, .drop-zone, .tab-button, input, .mode-btn');
-        hoverables.forEach(el => {
-            if (el.dataset.cursorBound) return;
-            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-            el.dataset.cursorBound = "true";
-        });
-    };
-    updateHoverables();
-    const observer = new MutationObserver(updateHoverables);
-    observer.observe(document.body, { childList: true, subtree: true });
+    // Use event delegation for hover states instead of MutationObserver/querySelectorAll
+    // This is MUCH more efficient
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('a, button, .drop-zone, .tab-button, input, .mode-btn');
+        if (target) {
+            cursor.classList.add('hover');
+        }
+    }, { passive: true });
+
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('a, button, .drop-zone, .tab-button, input, .mode-btn');
+        if (target) {
+            cursor.classList.remove('hover');
+        }
+    }, { passive: true });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -73,9 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: data.type,
-                    fileName: data.file,
-                    fileSize: data.size,
-                    status: data.status === 'ok' ? 'success' : 'fail',
+                    fileName: data.file || data.fileName || 'N/A',
+                    fileSize: Number(data.size || data.fileSize || 0),
+                    status: data.status === 'ok' ? 'success' : (data.status === 'success' ? 'success' : 'fail'),
                     timestamp: new Date().toISOString()
                 })
             });

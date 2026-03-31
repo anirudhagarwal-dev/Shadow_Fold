@@ -192,6 +192,20 @@
                 <div class="stat-card"><div class="stat-label">Files Encoded</div><div class="stat-value" id="s-enc">0</div><div class="stat-sub">reality folds</div></div>
                 <div class="stat-card"><div class="stat-label">Files Decoded</div><div class="stat-value" id="s-dec">0</div><div class="stat-sub">void entries</div></div>
                 <div class="stat-card"><div class="stat-label">Failed Tasks</div><div class="stat-value" id="s-fail" style="color:var(--primary-color)">0</div><div class="stat-sub">anomalies detected</div></div>
+                <div class="stat-card">
+                    <div class="stat-label">Data Processed</div>
+                    <div class="stat-value" id="s-bytes">0 B</div>
+                    <div class="stat-sub">total payload bytes</div>
+                </div>
+            </div>
+
+            <div class="chart-section" style="width:100%; margin-bottom:25px; animation: fadeIn .5s ease .12s both;">
+                <div style="font-family:var(--font-secondary); font-size:.65rem; letter-spacing:.18em; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">
+                    7-DAY ACTIVITY
+                </div>
+                <div style="position:relative; height:140px; width:100%;">
+                    <canvas id="activity-chart"></canvas>
+                </div>
             </div>
 
             <!-- FILTERS -->
@@ -201,6 +215,7 @@
                 <button class="filter-btn" onclick="setFilter('encode', this)">ENCODE</button>
                 <button class="filter-btn" onclick="setFilter('decode', this)">DECODE</button>
                 <button class="filter-btn" onclick="setFilter('steganalysis', this)">ANALYSIS</button>
+
                 <button class="filter-btn" onclick="setFilter('benchmark', this)">BENCHMARK</button>
                 <button class="filter-btn" onclick="setFilter('ok', this)">SUCCESS</button>
                 <button class="filter-btn" onclick="setFilter('fail', this)">FAILED</button>
@@ -255,6 +270,7 @@
         async function clearAll() {
             if (!confirm('Clear entire operation log?')) return;
             try {
+                if (activityChart) { activityChart.destroy(); activityChart = null; }
                 await fetch('/api/operations', { method: 'DELETE' });
                 await fetchDashboard();
             } catch (err) {
@@ -290,6 +306,7 @@
             document.getElementById('s-enc').textContent = stats.encoded;
             document.getElementById('s-dec').textContent = stats.decoded;
             document.getElementById('s-fail').textContent = stats.failed;
+            document.getElementById('s-bytes').textContent = fmtBytes(stats.bytes || 0);
         }
 
         // ── Filter ────────────────────────────────────────────────────────────
@@ -382,7 +399,115 @@
 
         function goPage(p) { currentPage = p; renderTable(); }
 
+        function buildChartData(activities) {
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                days.push(d.toLocaleDateString('en', { weekday: 'short' }));
+            }
+            const encCounts = new Array(7).fill(0);
+            const decCounts = new Array(7).fill(0);
+            activities.forEach(op => {
+                const opDate = new Date(op.timestamp);
+                const daysAgo = Math.floor((Date.now() - opDate) / 86400000);
+                if (daysAgo >= 0 && daysAgo < 7) {
+                    const idx = 6 - daysAgo;
+                    if (op.type === 'encode' && op.status === 'success') encCounts[idx]++;
+                    if (op.type === 'decode' && op.status === 'success') decCounts[idx]++;
+                }
+            });
+            return { labels: days, encCounts, decCounts };
+        }
+
+        function updateChart() {
+            const { recentActivity } = dashboardData;
+            const chartData = buildChartData(recentActivity);
+
+            if (activityChart) {
+                activityChart.data.labels = chartData.labels;
+                activityChart.data.datasets[0].data = chartData.encCounts;
+                activityChart.data.datasets[1].data = chartData.decCounts;
+                activityChart.update();
+                return;
+            }
+
+            Chart.defaults.color = 'rgba(255,255,255,0.3)';
+            const ctx = document.getElementById('activity-chart').getContext('2d');
+            activityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Encode',
+                            data: chartData.encCounts,
+                            backgroundColor: 'rgba(255, 0, 51, 0.4)',
+                            borderColor: 'rgba(255, 0, 51, 0.8)',
+                            borderWidth: 1,
+                            borderRadius: 2
+                        },
+                        {
+                            label: 'Decode',
+                            data: chartData.decCounts,
+                            backgroundColor: 'rgba(0, 200, 120, 0.35)',
+                            borderColor: 'rgba(0, 200, 120, 0.7)',
+                            borderWidth: 1,
+                            borderRadius: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 400 },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                color: 'rgba(255,255,255,0.25)',
+                                font: { family: "'Share Tech Mono', monospace", size: 10 }
+                            },
+                            grid: { display: false },
+                            border: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'rgba(255,255,255,0.25)',
+                                stepSize: 1,
+                                font: { family: "'Share Tech Mono', monospace", size: 10 }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.04)', lineWidth: 0.5 },
+                            border: { color: 'rgba(255,255,255,0.05)' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255,255,255,0.3)',
+                                font: { family: "'Share Tech Mono', monospace", size: 10 },
+                                boxWidth: 10,
+                                padding: 12
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.85)',
+                            titleColor: 'rgba(255,0,51,0.9)',
+                            bodyColor: 'rgba(255,255,255,0.6)',
+                            borderColor: 'rgba(255,0,51,0.2)',
+                            borderWidth: 1,
+                            titleFont: { family: "'Orbitron', sans-serif", size: 10 },
+                            bodyFont: { family: "'Share Tech Mono', monospace", size: 10 }
+                        }
+                    }
+                }
+            });
+        }
+
         // ── Init ──────────────────────────────────────────────────────────────
+        document.getElementById('search').addEventListener('input', () => renderTable());
         fetchDashboard();
         // Poll for updates every 5 seconds for "real-time" feel
         setInterval(fetchDashboard, 5000);

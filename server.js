@@ -1,17 +1,46 @@
 const express = require('express');
 const path = require('path');
-
+const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
 const port = 3000;
 
-// Simple in-memory data store for operations
-let operations = [
-    { id: 1, type: 'encode', fileName: 'sample_secret.txt', fileSize: 1024, status: 'success', timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
-    { id: 2, type: 'decode', fileName: 'carrier_image.png', fileSize: 512, status: 'success', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
-    { id: 3, type: 'steganalysis', fileName: 'suspicious.bmp', fileSize: 2048000, status: 'fail', timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString() }
-];
+// --- Data Persistence ---
+const DATA_DIR = path.join(__dirname, 'data');
+const OPS_FILE = path.join(DATA_DIR, 'operations.json');
+const MAX_OPS = 500;
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Load operations from file or initialize
+let operations = [];
+try {
+    if (fs.existsSync(OPS_FILE)) {
+        const data = fs.readFileSync(OPS_FILE, 'utf8');
+        operations = JSON.parse(data);
+    }
+} catch (err) {
+    console.error("Error loading operations:", err);
+    operations = []; // Start fresh on error
+}
+
+// Function to save operations to disk
+function saveOperations() {
+    try {
+        // Cap the operations array
+        if (operations.length > MAX_OPS) {
+            operations = operations.slice(0, MAX_OPS);
+        }
+        fs.writeFileSync(OPS_FILE, JSON.stringify(operations, null, 2), 'utf8');
+    } catch (err) {
+        console.error("Error saving operations:", err);
+    }
+}
+
 
 app.use(cors());
 app.use(express.json());
@@ -22,11 +51,11 @@ app.use('/build', express.static(path.join(__dirname, 'build')));
 app.post('/api/operations', (req, res) => {
     console.log('--- NEW OPERATION ---');
     console.log('Payload:', req.body);
-    const { type, fileName, fileSize, status, timestamp } = req.body;
+    const { type, file, fileSize, status, timestamp } = req.body;
     const newOp = {
         id: Date.now(),
         type, // 'encode', 'decode', 'steganalysis', 'benchmark'
-        fileName: fileName || 'N/A',
+        fileName: req.body.fileName || file || 'N/A',
         fileSize: Number(fileSize) || 0,
         status, // 'success' or 'fail'
         timestamp: timestamp || new Date().toISOString()
@@ -78,7 +107,13 @@ app.delete('/api/operations', (req, res) => {
 app.delete('/api/operations/:id', (req, res) => {
     const { id } = req.params;
     operations = operations.filter(op => op.id !== parseInt(id));
+    saveOperations();
     res.status(204).send();
+});
+
+// API: Get all operations for client-side filtering
+app.get('/api/operations', (req, res) => {
+    res.json(operations);
 });
 
 app.listen(port, () => {

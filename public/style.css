@@ -51,6 +51,9 @@ html, body, a, button, input, select, textarea, [role="button"] {
     height: 20px;
     transform: translate(-50%, -50%);
     transition: width 0.2s ease, height 0.2s ease;
+    will-change: transform;
+    top: 0;
+    left: 0;
 }
 
 /* The Glowing Center Dot */
