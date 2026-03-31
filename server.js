@@ -1,46 +1,13 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
 const port = 3000;
 
-// --- Data Persistence ---
-const DATA_DIR = path.join(__dirname, 'data');
-const OPS_FILE = path.join(DATA_DIR, 'operations.json');
+// --- Data Persistence (In-Memory) ---
 const MAX_OPS = 500;
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// Load operations from file or initialize
 let operations = [];
-try {
-    if (fs.existsSync(OPS_FILE)) {
-        const data = fs.readFileSync(OPS_FILE, 'utf8');
-        operations = JSON.parse(data);
-    }
-} catch (err) {
-    console.error("Error loading operations:", err);
-    operations = []; // Start fresh on error
-}
-
-// Function to save operations to disk
-function saveOperations() {
-    try {
-        // Cap the operations array
-        if (operations.length > MAX_OPS) {
-            operations = operations.slice(0, MAX_OPS);
-        }
-        fs.writeFileSync(OPS_FILE, JSON.stringify(operations, null, 2), 'utf8');
-    } catch (err) {
-        console.error("Error saving operations:", err);
-    }
-}
-
 
 app.use(cors());
 app.use(express.json());
@@ -61,6 +28,12 @@ app.post('/api/operations', (req, res) => {
         timestamp: timestamp || new Date().toISOString()
     };
     operations.unshift(newOp); // Add to the beginning for "recent activity"
+    
+    // Cap the operations array
+    if (operations.length > MAX_OPS) {
+        operations = operations.slice(0, MAX_OPS);
+    }
+    
     console.log('Operations count:', operations.length);
     res.status(201).json(newOp);
 });
@@ -107,7 +80,6 @@ app.delete('/api/operations', (req, res) => {
 app.delete('/api/operations/:id', (req, res) => {
     const { id } = req.params;
     operations = operations.filter(op => op.id !== parseInt(id));
-    saveOperations();
     res.status(204).send();
 });
 
