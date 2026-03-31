@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow Fold – The Void</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/fflate.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="style.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -21,6 +21,33 @@
             <a href="how-it-works.html">HOW IT WORKS</a>
         </div>
     </nav>
+
+    <!-- HUD Elements -->
+    <div class="hud-panel hud-left">
+        <div class="hud-item">
+            <span class="hud-label">SIGNAL:</span>
+            <span class="hud-value" id="hud-signal">STABLE</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">ENCRYPTION:</span>
+            <span class="hud-value">AES-256-CBC</span>
+        </div>
+        <div class="hud-deco-line"></div>
+        <div class="hud-coord">X: 00.0000 Y: 00.0000</div>
+    </div>
+
+    <div class="hud-panel hud-right">
+        <div class="hud-item">
+            <span class="hud-label">RNG:</span>
+            <span class="hud-value">MT19937_64</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">STATUS:</span>
+            <span class="hud-value">ACTIVE</span>
+        </div>
+        <div class="hud-deco-line"></div>
+        <div class="hud-coord">Z: 00.0000 R: 00.0000</div>
+    </div>
     <div class="crt-scanline"></div>
     <div id="intro-screen">
         <div class="intro-background">
@@ -87,7 +114,20 @@
                             <input type="file" id="encode-image-input" accept="image/png, image/bmp" hidden>
                             <img id="encode-image-preview" class="preview-thumb" src="" alt="Carrier Image Preview">
                         </div>
+                        <div id="capacity-section" style="display:none; margin-top:14px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <span style="font-family:var(--font-secondary); font-size:0.62rem; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase;">CAPACITY</span>
+                                <span style="font-family:var(--font-secondary); font-size:0.62rem; color:var(--text-muted);">
+                                    <span id="capacity-used">0 B</span>
+                                    <span id="capacity-max" style="color:#333;"> / 0 B</span>
+                                </span>
+                                <span id="capacity-pct" style="font-family:var(--font-primary); font-size:0.7rem; color:#00c878;">0%</span>
+                            </div>
+                            <div style="width:100%; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+                                <div id="capacity-bar" style="height:100%; width:0%; background:#00c878; border-radius:2px; transition:width 0.4s ease, background 0.4s ease;"></div>
+                            </div>
                         </div>
+                    </div>
                     <div class="panel">
                         <h3>Secret Payload</h3>
                         <div id="payload-pack-zone" class="drop-zone">
@@ -165,6 +205,11 @@
                     <button id="encode-button" class="action-button" style="margin-top: 10px;">FOLD REALITY</button>
                     <div id="capacity-warning" class="capacity-warning"></div>
                     <div id="encode-stats" class="stats-container"></div>
+                    <div id="heatmap-section" style="display:none; margin-top:20px;">
+                        <div style="font-family:var(--font-secondary); font-size:0.65rem; letter-spacing:0.18em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">PIXEL MODIFICATION HEATMAP</div>
+                        <canvas id="heatmap-canvas" style="width:100%; max-height:300px; object-fit:contain; border-radius:4px; border:1px solid rgba(255,0,51,0.15);"></canvas>
+                        <div id="heatmap-label" style="font-family:var(--font-secondary); font-size:0.65rem; color:var(--text-muted); margin-top:6px; text-align:center;"></div>
+                    </div>
                 </div>
             </main>
 
@@ -197,9 +242,11 @@
                         <div id="decode-dual-pass-section" style="display: none;">
                             <div class="password-container" style="margin-bottom: 10px;">
                                 <input type="password" id="decode-real-password" placeholder="Real Password">
+                                <button id="decode-real-toggle-password">SHOW</button>
                             </div>
                             <div class="password-container">
                                 <input type="password" id="decode-decoy-password" placeholder="Decoy Password">
+                                <button id="decode-decoy-toggle-password">SHOW</button>
                             </div>
                             
                             <div id="decode-layer-selector" class="mode-selector" style="margin-top: 15px;">
@@ -219,6 +266,7 @@
                     </div>
                     <button id="decode-button" class="action-button decode-glow" style="margin-top: 10px;">ENTER THE VOID</button>
                     <div id="decode-stats" class="stats-container"></div>
+                    <div id="decode-preview-section" style="display:none; margin-top:20px; text-align:center;"></div>
                 </div>
             </main>
 
@@ -232,6 +280,41 @@
     </div>
     <canvas id="canvas" style="display: none;"></canvas>
     <script src="build/steganography.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // Modularized Emscripten build: Module is a function that returns a promise
+        let wasmLoaded = false;
+        let wasmLoadError = null;
+
+        if (typeof Module === 'function') {
+            const moduleInit = Module;
+            window.Module = {}; // Placeholder
+            moduleInit({
+                locateFile: function(path, prefix) {
+                    if (path.endsWith('.wasm')) return 'build/' + path;
+                    return prefix + path;
+                }
+            }).then(instance => {
+                window.Module = instance;
+                wasmLoaded = true;
+                console.log("[ShadowFold] WASM Module initialized and attached.");
+                // Update capacity indicator once ready
+                if (typeof updateCapacity === 'function') updateCapacity();
+                
+                // Signal to UI that engine is ready
+                document.dispatchEvent(new CustomEvent('wasmReady'));
+            }).catch(err => {
+                wasmLoadError = err;
+                console.error("[ShadowFold] Failed to initialize WASM Module:", err);
+                document.dispatchEvent(new CustomEvent('wasmError', { detail: err }));
+            });
+        } else {
+            wasmLoadError = new Error("WASM script failed to load or define Module function.");
+            console.error("[ShadowFold] " + wasmLoadError.message);
+        }
+
+        // Fallback mechanism: If WASM fails, we can still provide basic UI feedback
+        window.isWasmAvailable = () => wasmLoaded && !wasmLoadError;
+    </script>
+    <script src="script.js?v=2"></script>
 </body>
 </html>

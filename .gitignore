@@ -1,6 +1,31 @@
+# Dependencies
 node_modules/
+package-lock.json
+
+# Build and Compilation
+*.o
+*.obj
+*.out
+*.exe
+build/steganography.js
+build/steganography.wasm
+
+# OS related
+.DS_Store
+Thumbs.db
+
+# Environment and Data
+.env
+data/
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
 emsdk/
 tiny-AES-c/
-.DS_Store
-package-lock.json
-*.o
+

@@ -152,6 +152,7 @@
             .filter-bar{gap:8px} .search-input{width:100%;margin-left:0}
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <nav class="nav-bar">
@@ -231,6 +232,7 @@
     <script src="script.js"></script>
     <script>
         const PER_PAGE = 10;
+        let activityChart = null;
         let currentFilter = 'all';
         let currentPage = 1;
         let dashboardData = { stats: { total: 0, encoded: 0, decoded: 0, bytes: 0 }, recentActivity: [] };
@@ -246,10 +248,11 @@
                 dashboardData = { ...data, loaded: true };
                 updateStats();
                 renderTable();
+                updateChart();
             } catch (err) {
                 console.error('Failed to fetch dashboard data:', err);
                 const wrap = document.getElementById('table-wrap');
-                if (wrap) {
+                if (wrap && !dashboardData.loaded) {
                     wrap.innerHTML = `<div style="text-align:center;padding:50px;font-family:var(--font-secondary);color:var(--primary-color);">
                         ERROR: FAILED TO RETRIEVE VOID DATA<br>
                         <span style="font-size:0.8rem;color:#555;">${err.message}</span>
@@ -363,8 +366,8 @@
             slice.forEach(r => {
                 const pct = r.capacity ? Math.round((r.size||0) / r.capacity * 100) : 0;
                 const status = r.status === 'success' ? 'ok' : 'fail';
-                const isPack = r.ext === 'sfpack';
-                const fileLabel = isPack && r.fileCount ? `[${r.fileCount} FILES] ${r.fileName}` : r.fileName;
+                const isPack = r.fileName && r.fileName.endsWith('.sfpack');
+                const fileLabel = r.fileName || 'N/A';
                 const fileStyle = isPack ? 'color:#ff9900; font-weight:bold;' : '';
 
                 html += `<tr>
@@ -510,7 +513,15 @@
         document.getElementById('search').addEventListener('input', () => renderTable());
         fetchDashboard();
         // Poll for updates every 5 seconds for "real-time" feel
-        setInterval(fetchDashboard, 5000);
+        let pollInterval = setInterval(fetchDashboard, 5000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearInterval(pollInterval);
+            } else {
+                fetchDashboard(); // Refresh immediately on tab focus
+                pollInterval = setInterval(fetchDashboard, 5000);
+            }
+        });
     </script>
 </body>
 </html>

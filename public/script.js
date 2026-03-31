@@ -94,32 +94,73 @@ function isPasswordStrong(password) {
 }
 
 // ==============================
-// WASM DETECTION
-// v2  = new build  → encode_data_wh exists (9 args)
-// v1  = mid build  → encode_data exists with 7 args
-// v0  = original   → encode_data exists with 4 args (pre-dual-layer)
+// WASM DETECTION & STATE
 // ==============================
+let wasmInstance = null;
+let wasmStatus = 'loading'; // 'loading', 'ready', 'error'
+
+document.addEventListener('wasmReady', () => {
+    wasmInstance = window.Module;
+    wasmStatus = 'ready';
+    updateCapacity();
+    updateUIStatus('STABLE');
+});
+
+document.addEventListener('wasmError', (e) => {
+    wasmStatus = 'error';
+    updateUIStatus('ERROR', 'danger');
+    alert(`[ShadowFold] Critical Engine Error: ${e.detail.message || 'WASM initialization failed'}. Some features may be disabled.`);
+});
+
+function updateUIStatus(text, type = 'stable') {
+    const signalEl = document.getElementById('hud-signal');
+    if (signalEl) {
+        signalEl.textContent = text;
+        signalEl.className = `hud-value hud-signal-${type}`;
+    }
+}
+
 function getWASMVersion() {
-    const mod = window.Module || (typeof Module !== 'undefined' ? Module : null);
-    if (!mod) return 'none';
+    const mod = wasmInstance || window.Module || (typeof Module !== 'undefined' ? Module : null);
     
-    // Check for specific v2 exports
-    if (typeof mod.encode_data_wh === 'function' && typeof mod.decode_data_dual === 'function') {
-        return 'v2';
+    if (!mod || wasmStatus === 'error') {
+        console.warn("[ShadowFold] WASM Module object not found or in error state.");
+        return 'none';
+    }
+
+    // If Module is a function (Modularized build), it hasn't been initialized into an object yet.
+    if (typeof mod === 'function') {
+        console.warn("[ShadowFold] WASM Module is still a function. Waiting for initialization.");
+        return 'none';
+    }
+
+    // Check for the core functions. In Emscripten, these are added to the Module object.
+    const hasV2 = typeof mod.encode_data_wh === 'function';
+    const hasV1 = typeof mod.encode_data === 'function';
+
+    if (!hasV2 && !hasV1) {
+        console.warn("[ShadowFold] WASM functions not yet attached to Module.");
+        return 'none';
     }
     
-    // Check for v1/v0 based on arity
-    if (typeof mod.encode_data === 'function') {
+    let version = 'none';
+    if (hasV2 && typeof mod.decode_data_dual === 'function') {
+        version = 'v2';
+    } else if (hasV1) {
         // Emscripten exposes arity via .length
-        return mod.encode_data.length >= 7 ? 'v1' : 'v0';
+        version = mod.encode_data.length >= 7 ? 'v1' : 'v0';
     }
-    return 'none';
+    
+    console.log(`[ShadowFold] WASM version detected: ${version}`);
+    return version;
 }
 
 // ==============================
 // CYBERPUNK GLITCH CURSOR
 // ==============================
 function initCustomCursor() {
+    if (document.querySelector('.custom-cursor-container')) return;
+    
     const container = document.createElement('div');
     container.className = 'custom-cursor-container';
     
@@ -133,6 +174,7 @@ function initCustomCursor() {
     
     container.appendChild(cursor);
     document.body.appendChild(container);
+    document.body.classList.add('custom-cursor-active');
 
     let mouseX = 0, mouseY = 0;
     let cursorX = 0, cursorY = 0;
@@ -142,6 +184,8 @@ function initCustomCursor() {
         mouseX = e.clientX;
         mouseY = e.clientY;
     }, { passive: true });
+
+    let animationFrameId = null;
 
     // Optimized smooth follow using transform: translate3d (GPU accelerated)
     function animate() {
@@ -153,13 +197,22 @@ function initCustomCursor() {
         if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
             cursorX += dx * easing;
             cursorY += dy * easing;
-            // translate3d is more efficient than top/left, plus we keep the centering transform
             cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0) translate(-50%, -50%)`;
         }
         
-        requestAnimationFrame(animate);
+        animationFrameId = requestAnimationFrame(animate);
     }
     animate();
+
+    // Use IntersectionObserver to stop animation when cursor is hidden/page is backgrounded
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelAnimationFrame(animationFrameId);
+        } else {
+            animate();
+        }
+    });
+
 
     // Glitch logic: Jitter and Flicker
     setInterval(() => {
@@ -260,6 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Password Toggles ---
     setupPasswordToggle('encode-toggle-password', 'encode-password');
     setupPasswordToggle('decode-toggle-password', 'decode-password');
+    setupPasswordToggle('decode-real-toggle-password', 'decode-real-password');
+    setupPasswordToggle('decode-decoy-toggle-password', 'decode-decoy-password');
 
     // --- Password Strength Meters ---
     setupStrengthMeter('encode-password', 'encode-password-strength');
@@ -494,24 +549,18 @@ async function buildSecretPayload() {
     const videoExts = ['mp4', 'mkv', 'mov', 'avi', 'webm'];
     const docExts = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls'];
     const ext0 = files[0]?.file.name.split('.').pop().toLowerCase();
-    const warningEl = document.getElementById('capacity-warning');
-    if (warningEl) {
-        if (videoExts.includes(ext0) && totalSize > 5 * 1024 * 1024) {
-            const minPixels = Math.ceil((totalSize * 8) / 3);
-            const minMP = (minPixels / 1000000).toFixed(1);
-            warningEl.textContent = `⚠ Video is large (${formatBytes(totalSize)}). Carrier image must be at least ${minMP}MP. Use a high-resolution PNG.`;
-            warningEl.style.display = 'block';
-        } else if (audioExts.includes(ext0) && totalSize > 2 * 1024 * 1024) {
-            warningEl.textContent = `ℹ Audio file is large. Consider converting to MP3 128kbps first for best results.`;
-            warningEl.style.display = 'block';
-        } else if (docExts.includes(ext0) && totalSize > 1 * 1024 * 1024) {
-            const minPixels = Math.ceil((totalSize * 8) / 3);
-            const minMP = (minPixels / 1000000).toFixed(1);
-            warningEl.textContent = `ℹ Large document (${formatBytes(totalSize)}). Carrier image needs ~${minMP}MP minimum.`;
-            warningEl.style.display = 'block';
-        } else {
-            warningEl.style.display = 'none';
-        }
+    
+    let advisory = null;
+    if (videoExts.includes(ext0) && totalSize > 5 * 1024 * 1024) {
+        const minPixels = Math.ceil((totalSize * 8) / 3);
+        const minMP = (minPixels / 1000000).toFixed(1);
+        advisory = `⚠ Video is large (${formatBytes(totalSize)}). Carrier image must be at least ${minMP}MP. Use a high-resolution PNG.`;
+    } else if (audioExts.includes(ext0) && totalSize > 2 * 1024 * 1024) {
+        advisory = `ℹ Audio file is large. Consider converting to MP3 128kbps first for best results.`;
+    } else if (docExts.includes(ext0) && totalSize > 1 * 1024 * 1024) {
+        const minPixels = Math.ceil((totalSize * 8) / 3);
+        const minMP = (minPixels / 1000000).toFixed(1);
+        advisory = `ℹ Large document (${formatBytes(totalSize)}). Carrier image needs ~${minMP}MP minimum.`;
     }
 
     if (files.length === 1) {
@@ -530,7 +579,7 @@ async function buildSecretPayload() {
         }
         const bytes = new Uint8Array(await fileEntry.file.arrayBuffer());
         const finalExt = fileEntry.file.name.split('.').pop().toLowerCase();
-        return { bytes, ext: finalExt };
+        return { bytes, ext: finalExt, advisory };
     }
      
     // Multi-file: build in-memory zip using fflate
@@ -548,7 +597,7 @@ async function buildSecretPayload() {
         }
         fflate.zip(zipInput, { level: 0 }, (err, data) => {
             if (err) { reject(err); return; }
-            resolve({ bytes: data, ext: 'sfpack' });
+            resolve({ bytes: data, ext: 'sfpack', advisory });
         });
     });
 }
@@ -701,6 +750,9 @@ function setupDropZone(zoneId, inputId, previewId, nameId) {
         if (inputId === 'encode-image-input' || inputId === 'secret-file-input') {
             updateCapacity();
         }
+        // NOTE: We do NOT reset input.value = '' here for image inputs,
+        // because the browser clears the files collection when value is cleared.
+        // The encode/decode functions need those files later.
     });
 }
 
@@ -779,11 +831,16 @@ function updateCapacity() {
 
         const capacityWarning = document.getElementById('capacity-warning');
         if (capacityWarning) {
+            const tooLargeMsg = '⚠ Payload too large for this carrier image. Use a larger PNG or compress first.';
             if (pct > 100) {
-                capacityWarning.textContent = '⚠ Payload too large for this carrier image. Use a larger PNG or compress first.';
+                capacityWarning.textContent = tooLargeMsg;
                 capacityWarning.style.display = 'block';
             } else {
-                capacityWarning.style.display = 'none';
+                // Only clear if the current message is the "too large" warning
+                if (capacityWarning.textContent === tooLargeMsg) {
+                    capacityWarning.textContent = '';
+                    capacityWarning.style.display = 'none';
+                }
             }
         }
 
@@ -874,8 +931,8 @@ async function handleEncode() {
         // Create a copy of the original pixels for PSNR and heatmap
         const originalPixels = new Uint8Array(imageData.data);
         
-        // Pass the ClampedArray directly to avoid an extra copy in JS.
-        const imageBytes = imageData.data;
+        // Pass a Uint8Array view into the buffer. Embind sometimes prefers Uint8Array over Clamped.
+        const imageBytes = new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.length);
 
         // Sanity check
         if (imageBytes.length !== canvas.width * canvas.height * 4) {
@@ -884,6 +941,15 @@ async function handleEncode() {
         const payload     = await buildSecretPayload();
         if (!payload) throw new Error('Failed to build payload');
         
+        if (payload.advisory) {
+            const warningEl = document.getElementById('capacity-warning');
+            if (warningEl) {
+                warningEl.textContent = payload.advisory;
+                warningEl.style.display = 'block';
+            }
+        }
+        updateCapacity();
+
         const secretBytes = payload.bytes;
         const ext         = payload.ext;
 
@@ -1040,6 +1106,8 @@ async function handleDecode() {
     const imageInput    = document.getElementById('decode-image-input');
     const stats         = document.getElementById('decode-stats');
 
+    if (!imageInput?.files[0]) { alert('Please upload an encoded image.'); return; }
+
     // Check Mode
     const activeModeBtn = document.querySelector('#decode-mode-selector .mode-btn.active');
     const isDual = activeModeBtn && activeModeBtn.dataset.mode === 'dual';
@@ -1064,8 +1132,7 @@ async function handleDecode() {
         if (!password) { alert('Please enter the frequency (password).'); return; }
     }
 
-    if (!imageInput?.files[0]) { alert('Please upload an encoded image.'); return; }
-
+    console.log(`[ShadowFold] Starting decode. WASM version: ${wasmVer}, Mode: ${isDual ? 'dual' : 'single'}`);
     showLoader('ENTERING THE VOID...');
 
     const canvas = document.getElementById('canvas');
@@ -1241,10 +1308,47 @@ function showLoader(text) {
     const loader     = document.getElementById('loader');
     const loaderText = document.getElementById('loader-text');
     if (loaderText) loaderText.textContent = text;
-    if (loader) loader.classList.add('show');
+    if (loader) loader.style.display = 'flex';
 }
 
 function hideLoader() {
     const loader = document.getElementById('loader');
-    if (loader) loader.classList.remove('show');
+    if (loader) loader.style.display = 'none';
+}
+
+/**
+ * Shows a preview of the decoded file
+ * @param {Uint8Array} fileData - The raw file data
+ * @param {string} fileExt - The file extension
+ */
+function showDecodePreview(fileData, fileExt) {
+    const previewSection = document.getElementById('decode-preview-section');
+    if (!previewSection) return;
+
+    // Clear previous content
+    previewSection.innerHTML = '';
+
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+    
+    if (imageExtensions.includes(fileExt.toLowerCase())) {
+        const img = document.createElement('img');
+        const blob = new Blob([fileData]);
+        img.src = URL.createObjectURL(blob);
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '300px';
+        img.style.borderRadius = '4px';
+        img.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        img.style.marginTop = '10px';
+        previewSection.appendChild(img);
+    } else {
+        const sizeKB = (fileData.byteLength / 1024).toFixed(2);
+        const info = document.createElement('div');
+        info.style.fontFamily = 'var(--font-secondary)';
+        info.style.fontSize = '0.75rem';
+        info.style.color = 'var(--text-muted)';
+        info.textContent = `File ready: .${fileExt} (${sizeKB} KB)`;
+        previewSection.appendChild(info);
+    }
+
+    previewSection.style.display = 'block';
 }

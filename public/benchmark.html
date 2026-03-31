@@ -205,8 +205,15 @@
         } 
   
          // Wait for WASM 
-         if (window.Module) { 
-             Module.onRuntimeInitialized = () => { 
+         if (typeof Module === 'function') { 
+             const moduleInit = Module;
+             moduleInit({
+                 locateFile: function(path, prefix) {
+                     if (path.endsWith('.wasm')) return 'build/' + path;
+                     return prefix + path;
+                 }
+             }).then(instance => {
+                 window.Module = instance;
                  wasmReady = true; 
                  const statusEl = document.getElementById('wasm-status');
                  if (statusEl) {
@@ -215,7 +222,9 @@
                  }
                  const runBtn = document.getElementById('run-btn');
                  if (runBtn) runBtn.disabled = false; 
-             }; 
+             }).catch(err => {
+                 console.error("[ShadowFold] Failed to initialize WASM Module:", err);
+             });
          } 
   
          function selectSize(btn, kb) { 
@@ -284,7 +293,12 @@
   
              // WASM benchmark 
              const wasmStart = performance.now(); 
-             const wasmResult = window.Module.encode_data(imageBytes, payload, payloadExt, payloadPassword); 
+             const IMG_W = 1024; 
+             const IMG_H = 1024; 
+             const emptyDecoy = new Uint8Array(0); 
+             const wasmResult = typeof window.Module.encode_data_wh === 'function' 
+                 ? window.Module.encode_data_wh(imageBytes, payload, payloadExt, payloadPassword, emptyDecoy, '', '', IMG_W, IMG_H) 
+                 : window.Module.encode_data(imageBytes, payload, payloadExt, payloadPassword); 
              const wasmEnd = performance.now(); 
              const wasmMs = wasmEnd - wasmStart; 
   

@@ -26,17 +26,19 @@ using namespace emscripten;
 // Uses a subarray view into HEAPU8 then JS set() — one crossing
 // instead of N crossings for an N-byte image.
 std::vector<uint8_t> vecFromJSArray(const val& jsArray) {
-    if (!jsArray.hasOwnProperty("length")) return {};
+    if (jsArray.isUndefined() || jsArray.isNull()) return {};
     const unsigned l = jsArray["length"].as<unsigned>();
     if (l == 0) return {};
     std::vector<uint8_t> v(l);
-    val heap = val::module_property("HEAPU8");
-    val mem  = val::global("Uint8Array").new_(
-        heap["buffer"],
-        reinterpret_cast<uintptr_t>(v.data()),
-        l
-    );
-    mem.call<void>("set", jsArray);
+    
+    // Use emscripten::typed_memory_view to create a JS Uint8Array view 
+    // directly pointing to the C++ vector's memory in the WASM heap.
+    // This is robust across modularized and non-modularized builds.
+    val view = val(typed_memory_view(l, v.data()));
+    
+    // Perform a bulk copy from the input JS array into our C++ memory view.
+    view.call<void>("set", jsArray);
+    
     return v;
 }
 
@@ -152,23 +154,35 @@ std::vector<uint8_t> build_payload(const std::vector<uint8_t>& raw,
     comp.resize(bound);
     uint32_t comp_size = static_cast<uint32_t>(bound);
 
-    // Pad to AES-16 block boundary (zero padding)
-    size_t padded = ((comp_size + 15) / 16) * 16;
-    comp.resize(padded, 0);
+    // Pad to AES-16 block boundary (Standard PKCS#7)
+    size_t pad_len = 16 - (comp_size % 16);
+    size_t padded = comp_size + pad_len;
+    comp.resize(padded, static_cast<uint8_t>(pad_len));
 
     // AES-256-CBC encrypt in-place
     AES_ctx ctx;
     AES_init_ctx_iv(&ctx, p.key, p.iv);
     AES_CBC_encrypt_buffer(&ctx, comp.data(), padded);
 
-    // Header: orig_size(4) | comp_size(4) | ext_len(4) | ext_bytes
+    // Header: orig_size(4) | comp_size(4) | ext_len(4) | ext_bytes (Big-endian)
     uint32_t orig32 = static_cast<uint32_t>(raw.size());
     uint32_t ext32  = static_cast<uint32_t>(ext.length());
 
     std::vector<uint8_t> blob(12);
-    std::memcpy(&blob[0], &orig32,    4);
-    std::memcpy(&blob[4], &comp_size, 4);
-    std::memcpy(&blob[8], &ext32,     4);
+    blob[0] = (orig32 >> 24) & 0xFF;
+    blob[1] = (orig32 >> 16) & 0xFF;
+    blob[2] = (orig32 >>  8) & 0xFF;
+    blob[3] = (orig32      ) & 0xFF;
+
+    blob[4] = (comp_size >> 24) & 0xFF;
+    blob[5] = (comp_size >> 16) & 0xFF;
+    blob[6] = (comp_size >>  8) & 0xFF;
+    blob[7] = (comp_size      ) & 0xFF;
+
+    blob[8] = (ext32 >> 24) & 0xFF;
+    blob[9] = (ext32 >> 16) & 0xFF;
+    blob[10]= (ext32 >>  8) & 0xFF;
+    blob[11]= (ext32      ) & 0xFF;
     blob.insert(blob.end(), ext.begin(), ext.end());
     blob.insert(blob.end(), comp.begin(), comp.end());
     return blob;
@@ -217,15 +231,24 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
                          const std::vector<int>& indices,
                          size_t offset,
                          const DerivedParams& p) {
-    // Need at least 12-byte fixed header
-    if (offset + 96 > indices.size()) return {};
+    // Need at least 12-byte fixed header (96 bits)
+    if (indices.size() < 96 + offset) return {};
 
     std::vector<uint8_t> hdr = read_bytes(carrier, indices, offset, 12);
 
-    uint32_t orig_size, comp_size, ext_len;
-    std::memcpy(&orig_size, &hdr[0], 4);
-    std::memcpy(&comp_size, &hdr[4], 4);
-    std::memcpy(&ext_len,   &hdr[8], 4);
+    // Parse header (Big-endian)
+    uint32_t orig_size = (static_cast<uint32_t>(hdr[0]) << 24) |
+                         (static_cast<uint32_t>(hdr[1]) << 16) |
+                         (static_cast<uint32_t>(hdr[2]) << 8)  |
+                          static_cast<uint32_t>(hdr[3]);
+    uint32_t comp_size = (static_cast<uint32_t>(hdr[4]) << 24) |
+                         (static_cast<uint32_t>(hdr[5]) << 16) |
+                         (static_cast<uint32_t>(hdr[6]) << 8)  |
+                          static_cast<uint32_t>(hdr[7]);
+    uint32_t ext_len   = (static_cast<uint32_t>(hdr[8]) << 24) |
+                         (static_cast<uint32_t>(hdr[9]) << 16) |
+                         (static_cast<uint32_t>(hdr[10]) << 8) |
+                          static_cast<uint32_t>(hdr[11]);
 
     // Sanity bounds (500 MB max, 16 char ext)
     if (orig_size > 500u * 1024 * 1024 ||
@@ -233,11 +256,20 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
         ext_len   > 16)
         return {};
 
+    // Guard: comp_size must not exceed available stego capacity 
+    // Available bytes = (indices.size() - offset - 96) / 8  minus fixed header 
+    size_t available_bits  = (indices.size() > offset + 96) ? (indices.size() - offset - 96) : 0; 
+    size_t available_bytes = available_bits / 8; 
+    size_t min_needed      = 12 + ext_len + ((comp_size + 15) / 16) * 16; 
+    if (min_needed > available_bytes) return {}; 
+
     size_t header_total = 12 + ext_len;
     size_t padded       = ((comp_size + 15) / 16) * 16;
     size_t blob_bytes   = header_total + padded;
 
-    if (offset + blob_bytes * 8 > indices.size()) return {};
+    // Safety check for multiplication overflow and OOB
+    if (offset > indices.size()) return {};
+    if (blob_bytes * 8 > indices.size() - offset) return {};
 
     // Read full blob
     std::vector<uint8_t> blob = read_bytes(carrier, indices, offset, blob_bytes);
@@ -251,12 +283,27 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
     AES_init_ctx_iv(&ctx, p.key, p.iv);
     AES_CBC_decrypt_buffer(&ctx, cipher.data(), cipher.size());
 
+    // Strip PKCS#7 padding
+    if (!cipher.empty()) {
+        uint8_t pad = cipher.back();
+        if (pad >= 1 && pad <= 16 && cipher.size() >= pad) {
+            cipher.resize(cipher.size() - pad);
+        }
+    }
+
     // Decompress
-    cipher.resize(comp_size);
+    cipher.resize(comp_size); // final trim to actual compressed size
     std::vector<uint8_t> plain(orig_size);
     uLongf final_sz = orig_size;
-    if (uncompress(plain.data(), &final_sz, cipher.data(), comp_size) != Z_OK)
+    if (uncompress(plain.data(), &final_sz, cipher.data(), comp_size) != Z_OK) {
+        std::cerr << "[C++] Decompression failed.\n";
         return {};
+    }
+    
+    // Resize plain to the actual decompressed size to avoid trailing garbage
+    if (final_sz < orig_size) {
+        plain.resize(final_sz);
+    }
 
     return { plain, ext };
 }
@@ -296,7 +343,7 @@ val encode_data_wh(val image_data,
 
     // Build sorted pool of all non-alpha channel indices
     std::vector<int> pool;
-    pool.reserve(carrier.size() * 3 / 4);
+    pool.reserve((carrier.size() * 3) / 4);
     for (size_t i = 0; i < carrier.size(); ++i)
         if ((i + 1) % 4 != 0)
             pool.push_back(static_cast<int>(i));
@@ -415,7 +462,7 @@ val decode_data_dual(val image_data,
     std::vector<uint8_t> carrier = vecFromJSArray(image_data);
 
     std::vector<int> pool;
-    pool.reserve(carrier.size() * 3 / 4);
+    pool.reserve((carrier.size() * 3) / 4);
     for (size_t i = 0; i < carrier.size(); ++i)
         if ((i + 1) % 4 != 0)
             pool.push_back(static_cast<int>(i));

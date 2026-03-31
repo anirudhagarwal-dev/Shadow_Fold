@@ -1,81 +1,3 @@
-// ==============================
-// CYBERPUNK GLITCH CURSOR
-// ==============================
-function initCustomCursor() {
-    const container = document.createElement('div');
-    container.className = 'custom-cursor-container';
-    
-    const cursor = document.createElement('div');
-    cursor.className = 'custom-cursor';
-    cursor.innerHTML = `
-        <div class="cursor-ghost"></div>
-        <div class="cursor-ring"></div>
-        <div class="cursor-dot"></div>
-    `;
-    
-    container.appendChild(cursor);
-    document.body.appendChild(container);
-
-    let mouseX = 0, mouseY = 0;
-    let cursorX = 0, cursorY = 0;
-
-    // Use passive listener for better performance
-    document.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-    }, { passive: true });
-
-    // Optimized smooth follow using transform: translate3d (GPU accelerated)
-    function animate() {
-        const easing = 0.15;
-        const dx = mouseX - cursorX;
-        const dy = mouseY - cursorY;
-
-        // Threshold to stop animating if we're close enough (saves CPU)
-        if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-            cursorX += dx * easing;
-            cursorY += dy * easing;
-            // translate3d is more efficient than top/left, plus we keep the centering transform
-            cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0) translate(-50%, -50%)`;
-        }
-        
-        requestAnimationFrame(animate);
-    }
-    animate();
-
-    // Glitch logic: Jitter and Flicker
-    setInterval(() => {
-        if (Math.random() > 0.85) { // 15% chance to glitch
-            cursor.classList.add('glitch-active');
-            setTimeout(() => cursor.classList.remove('glitch-active'), 100 + Math.random() * 200);
-        }
-        
-        if (Math.random() > 0.95) { // 5% chance to flicker
-            cursor.classList.add('flicker-active');
-            setTimeout(() => cursor.classList.remove('flicker-active'), 50 + Math.random() * 100);
-        }
-    }, 500);
-
-    document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
-    document.addEventListener('mouseup', () => cursor.classList.remove('clicking'));
-
-    // Use event delegation for hover states instead of MutationObserver/querySelectorAll
-    // This is MUCH more efficient
-    document.addEventListener('mouseover', (e) => {
-        const target = e.target.closest('a, button, .drop-zone, .tab-button, input, .mode-btn');
-        if (target) {
-            cursor.classList.add('hover');
-        }
-    }, { passive: true });
-
-    document.addEventListener('mouseout', (e) => {
-        const target = e.target.closest('a, button, .drop-zone, .tab-button, input, .mode-btn');
-        if (target) {
-            cursor.classList.remove('hover');
-        }
-    }, { passive: true });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     initCustomCursor();
     // --- Tracking ---
@@ -388,14 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.beginPath();
         ctx.moveTo(0, H/2); ctx.lineTo(W, H/2);
         ctx.stroke();
-    }
-
-    function formatBytes(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
     // --- Simulation Helpers ---
