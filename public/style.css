@@ -6,6 +6,7 @@
     --text-secondary: #aaaaaa;
     --text-muted: #888888;
     --font-primary: 'Orbitron', sans-serif;
+    --font-logo: 'Audiowide', cursive;
     --font-secondary: 'Share Tech Mono', monospace;
     --accent-color: rgba(255, 0, 51, 0.2);
     --nav-background: rgba(13, 13, 13, 0.95);
@@ -286,7 +287,14 @@ body {
     background: radial-gradient(circle at top left, rgba(20, 10, 10, 0.9) 0%, rgba(10, 10, 10, 0.85) 100%);
     backdrop-filter: blur(25px);
     border: 1px solid rgba(255, 0, 51, 0.25);
-    border-radius: 8px; 
+    clip-path: polygon(
+        30px 0%, 
+        100% 0%, 
+        100% calc(100% - 30px), 
+        calc(100% - 30px) 100%, 
+        0% 100%, 
+        0% 30px
+    );
     padding: 2.5rem 3.5rem;
     width: 95vw;
     max-width: 1100px;
@@ -321,6 +329,7 @@ header {
 }
 
 header h1 {
+    font-family: var(--font-logo);
     font-size: 2.5rem;
     font-weight: 700;
     color: var(--primary-color);
@@ -366,29 +375,25 @@ header h2 {
 
 .tab-button {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: var(--text-color);
     font-family: var(--font-primary);
     font-size: 1rem;
     padding: 0.5rem 1.5rem;
     position: relative;
-    transition: color 0.3s;
+    clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
+    transition: all 0.3s;
 }
 
 .tab-button.active {
     color: var(--primary-color);
     text-shadow: 0 0 5px var(--primary-color);
+    background: rgba(255, 0, 51, 0.05);
+    border-color: rgba(255, 0, 51, 0.3);
 }
 
 .tab-button.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--primary-color);
-    box-shadow: 0 0 10px var(--primary-color);
+    display: none;
 }
 
 .tab-content {
@@ -407,13 +412,14 @@ header h2 {
 }
 
 .drop-zone {
-    border: 2px dashed rgba(255, 0, 51, 0.4);
-    border-radius: 10px;
+    border: 1px solid rgba(255, 0, 51, 0.3);
+    clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
     padding: 1rem;
     text-align: center;
-    transition: background-color 0.3s, border-color 0.3s;
+    transition: all 0.3s;
     position: relative;
     overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .panel h3 {
@@ -615,16 +621,32 @@ body {
     color: var(--primary-color);
     font-family: var(--font-primary);
     font-size: 1.2rem;
-    border-radius: 5px;
-    transition: background-color 0.3s, text-shadow 0.3s, box-shadow 0.3s;
+    position: relative;
+    clip-path: polygon(15px 0%, 100% 0%, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0% 100%, 0% 15px);
+    transition: all 0.3s;
     text-shadow: 0 0 5px var(--primary-color);
-    box-shadow: 0 0 10px rgba(255, 0, 51, 0.5) inset;
+    box-shadow: 0 0 10px rgba(255, 0, 51, 0.3) inset;
+    cursor: none !important;
+}
+
+.action-button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: -1;
 }
 
 .action-button:hover {
-    background-color: var(--primary-color);
-    color: var(--background-color);
+    color: #000;
+    text-shadow: none;
     box-shadow: 0 0 20px var(--primary-color);
+}
+
+.action-button:hover::after {
+    opacity: 1;
 }
 
 .decode-glow {
@@ -731,7 +753,7 @@ body {
 
 /* Glitch Title */
 .intro-title {
-    font-family: var(--font-primary);
+    font-family: var(--font-logo);
     font-size: 5rem;
     color: var(--primary-color); /* Changed from #fff to red */
     letter-spacing: 12px;
@@ -886,19 +908,43 @@ body {
     font-size: 1.1rem;
     letter-spacing: 4px;
     position: relative;
-    overflow: hidden;
-    animation: slideUp 0.5s forwards 3.2s;
+    clip-path: polygon(15px 0%, 100% 0%, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0% 100%, 0% 15px);
     transition: all 0.3s;
+    animation: slideUp 0.5s forwards 3.2s;
+    overflow: visible;
+}
+
+.enter-btn::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: var(--primary-color);
+    clip-path: polygon(15px 0%, 100% 0%, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0% 100%, 0% 15px);
+    z-index: -2;
+}
+
+.enter-btn::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: #050505;
+    clip-path: polygon(15px 0%, 100% 0%, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0% 100%, 0% 15px);
+    z-index: -1;
+    transition: background 0.3s;
+}
+
+.enter-btn:hover {
+    color: #000;
+    text-shadow: none;
+    box-shadow: 0 0 30px var(--primary-color);
+}
+
+.enter-btn:hover::after {
+    background: var(--primary-color);
 }
 
 @keyframes slideUp {
     to { opacity: 1; transform: translateY(0); }
-}
-
-.enter-btn:hover {
-    background: var(--primary-color);
-    color: #000;
-    box-shadow: 0 0 30px var(--primary-color);
 }
 
 /* Footer */
@@ -944,7 +990,7 @@ body {
 }
 
 .nav-logo {
-    font-family: var(--font-primary);
+    font-family: var(--font-logo);
     font-size: .88rem;
     color: var(--primary-color);
     letter-spacing: .2em;
@@ -1278,7 +1324,7 @@ input:checked + .slider:before {
     font-family: var(--font-primary);
     font-size: 0.65rem;
     letter-spacing: 0.1em;
-    border-radius: 4px;
+    clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
     transition: all 0.2s;
 }
 

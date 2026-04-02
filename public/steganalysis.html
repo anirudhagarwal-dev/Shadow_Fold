@@ -6,7 +6,7 @@
     <title>Steganalysis – Shadow Fold</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         body { overflow-y: auto; align-items: flex-start; padding-top: 80px; }
         
@@ -105,6 +105,34 @@
         .verdict.detected { background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.25); color: rgba(255,0,51,0.8); }
         .verdict.safe { background: rgba(0,200,120,0.06); border: 1px solid rgba(0,200,120,0.2); color: rgba(0,200,120,0.8); }
         .verdict.pending { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: var(--text-muted); }
+
+        .run-btn {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            font-family: var(--font-logo);
+            padding: 12px 30px;
+            font-size: 1rem;
+            letter-spacing: 0.2em;
+            position: relative;
+            clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
+            transition: all 0.3s;
+            text-shadow: 0 0 5px var(--primary-color);
+            box-shadow: 0 0 10px rgba(255, 0, 51, 0.2) inset;
+            cursor: none !important;
+        }
+
+        .run-btn:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: #000;
+            text-shadow: none;
+            box-shadow: 0 0 20px var(--primary-color);
+        }
+
+        .run-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
 
         .explainer { background: rgba(255,0,51,0.02); border: 1px solid rgba(255,0,51,0.1); border-radius: 10px; padding: 28px 32px; }
         .explainer h2 { font-family: var(--font-primary); font-size: .9rem; color: var(--primary-color); letter-spacing: .15em; margin-bottom: 16px; }
