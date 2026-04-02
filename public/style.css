@@ -320,20 +320,41 @@ header {
     margin-bottom: 1.5rem;
 }
 
-h1 {
-    font-family: var(--font-primary);
-    font-size: 2rem;
+header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
     color: var(--primary-color);
-    text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
-    letter-spacing: 4px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin: 0;
+    text-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-color);
 }
 
-h2 {
+header h2 {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    margin: 5px 0 0 0;
+}
+
+.subtitle {
     font-family: var(--font-secondary);
     font-size: 0.8rem;
-    color: var(--text-color);
-    letter-spacing: 6px;
-    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 15px;
+    max-width: 400px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.panel-subtitle {
+    font-family: var(--font-secondary);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
 }
 
 .tabs {
@@ -530,17 +551,25 @@ h2 {
     word-break: break-all; 
 } 
  
-.stat-good { 
-    color: rgba(0, 200, 120, 0.85) !important; 
-} 
- 
+.stat-good {
+    color: #00ff99 !important;
+    text-shadow: 0 0 5px rgba(0, 255, 153, 0.5);
+    animation: pulse-good 1.5s infinite;
+}
+
+@keyframes pulse-good {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
 .stat-warn { 
     color: rgba(255, 165, 0, 0.85) !important; 
 } 
  
-.stat-fail { 
-    color: rgba(255, 0, 51, 0.85) !important; 
-} 
+.stat-fail {
+    color: #ff4444 !important;
+    text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
+}
  
 /* ===== SCROLLABLE BODY FIX ===== */ 
 body { 

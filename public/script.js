@@ -933,7 +933,11 @@ async function handleEncode() {
         }
 
         if (!result) {
-            alert('Carrier capacity exceeded — payload is too large for this image.');
+            if (stats) stats.innerHTML = buildStatsHTML([
+                { label: 'STATUS', value: 'ENCODE FAILED', cls: 'stat-fail' },
+                { label: 'ERROR', value: 'CARRIER CAPACITY EXCEEDED' },
+                { label: 'DETAILS', value: 'Payload is too large for this image.' }
+            ]);
             if (window.SFLog) window.SFLog.add({
                 type: 'encode', 
                 file: window.SF_PackFiles.length > 1 ? `${window.SF_PackFiles.length} files (.sfpack)` : window.SF_PackFiles[0].file.name,
@@ -1115,7 +1119,10 @@ async function handleDecode() {
         }
 
         if (!result || !result.data) {
-            alert('Frequency mismatch or image corrupted. Check your password(s).');
+            if (stats) stats.innerHTML = buildStatsHTML([
+                { label: 'STATUS', value: 'DECODE FAILED', cls: 'stat-fail' },
+                { label: 'ERROR', value: 'FREQUENCY MISMATCH OR CORRUPTED DATA' }
+            ]);
             if (window.SFLog) window.SFLog.add({
                 type: 'decode', file: imageInput.files[0].name,
                 ext: '', size: 0, carrier: imageInput.files[0].name,

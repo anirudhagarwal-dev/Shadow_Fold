@@ -69,8 +69,10 @@
             
             <header>
                 <div class="header-pre">◈ SECURE STEGANOGRAPHY ENGINE v2.0</div>
+<header>
                 <h1>SHADOW FOLD</h1>
                 <h2>THE VISUAL VOID</h2>
+                <p class="subtitle">An experimental steganography tool for hiding data in plain sight.</p>
             </header>
 
             <div class="tabs">
@@ -109,7 +111,7 @@
                         <div id="compression-mode-indicator" class="compression-indicator"></div>
 
                         <div class="password-container" style="margin-top: 20px;">
-                            <input type="password" id="encode-password" placeholder="Real Frequency (Password)">
+                            <input type="password" id="encode-password" placeholder="8+ chars, incl. uppercase & numbers">
                             <button id="encode-toggle-password">SHOW</button>
                             <div id="encode-password-strength" class="password-strength"></div>
                         </div>
@@ -118,7 +120,7 @@
                         <div class="dual-layer-panel" id="dual-layer-panel-container">
                             <div class="dl-header">
                                 <div class="dl-title">
-                                    <span class="dl-dot"></span> DUAL LAYER MODE
+                                    <span class="dl-dot"></span> DUAL LAYER MODE <span class="info-tooltip" title="Embed a second, decoy file for plausible deniability. Requires a separate password.">?</span>
                                 </div>
                                 <label class="switch">
                                     <input type="checkbox" id="dual-layer-checkbox">
@@ -140,7 +142,7 @@
                                             <span id="decoy-file-name" class="file-name-text"></span>
                                         </div>
                                         <div class="password-container" style="margin-top: 10px; margin-bottom: 0;">
-                                            <input type="password" id="decoy-password" placeholder="Decoy Password" style="font-size: 0.7rem; padding: 0.5rem; background: rgba(255,0,51,0.03); border-color: rgba(255,0,51,0.2);">
+                                            <input type="password" id="decoy-password" placeholder="Must be different from real password" style="font-size: 0.7rem; padding: 0.5rem; background: rgba(255,0,51,0.03); border-color: rgba(255,0,51,0.2);">
                                             <div id="decoy-password-strength" class="password-strength"></div>
                                         </div>
                                     </div>
@@ -185,8 +187,14 @@
                     </div>
 
                     <div class="panel right-panel">
-                        <h3>REVEALED DATA</h3>
+                        <h3>ENTER THE VOID</h3>
+                        <p class="panel-subtitle">Select decode mode and enter the password(s) to extract the hidden data.</p>
                         
+                        <div id="decode-mode-selector" class="mode-selector" style="margin-bottom: 20px;">
+                            <div class="mode-btn active" data-mode="single">SINGLE LAYER</div>
+                            <div class="mode-btn" data-mode="dual">DUAL LAYER</div>
+                        </div>
+
                         <!-- Single Layer Password -->
                         <div id="decode-single-pass-section" class="password-container">
                             <input type="password" id="decode-password" placeholder="Enter Frequency (Password)">
