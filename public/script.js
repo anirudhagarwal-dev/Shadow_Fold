@@ -959,8 +959,12 @@ async function handleEncode() {
         setTimeout(() => { 
             if (passwordInput) passwordInput.value = ''; 
             if (decoyPasswordInput) decoyPasswordInput.value = '';
-            updateStrengthMeter('encode-password', 'encode-password-strength'); 
-            updateStrengthMeter('decoy-password', 'decoy-password-strength');
+            
+            // Clear strength meters
+            const sm1 = document.getElementById('encode-password-strength');
+            const sm2 = document.getElementById('decoy-password-strength');
+            if (sm1) sm1.innerHTML = '';
+            if (sm2) sm2.innerHTML = '';
         }, 1500);
 
         const totalPixels = canvas.width * canvas.height;
@@ -1127,13 +1131,20 @@ async function handleDecode() {
         const fileExt  = result.extension || 'bin';
 
         const unpackResult = await unpackPayload(fileData, fileExt);
-        showDecodePreview(fileData, fileExt);
 
         // Clear password fields after use
         setTimeout(() => { 
             if (document.getElementById('decode-password')) document.getElementById('decode-password').value = ''; 
             if (document.getElementById('decode-real-password')) document.getElementById('decode-real-password').value = '';
             if (document.getElementById('decode-decoy-password')) document.getElementById('decode-decoy-password').value = '';
+            
+            // Clear strength meters if they exist
+            const sm1 = document.getElementById('decode-password-strength');
+            const sm2 = document.getElementById('decode-real-password-strength');
+            const sm3 = document.getElementById('decode-decoy-password-strength');
+            if (sm1) sm1.innerHTML = '';
+            if (sm2) sm2.innerHTML = '';
+            if (sm3) sm3.innerHTML = '';
         }, 1500);
 
         try { trackOperation({ type: 'decode', file: imageInput.files[0].name, ext: fileExt, size: fileData.length, carrier: imageInput.files[0].name, capacity: 0, status: 'ok' }); } catch(e) {}
