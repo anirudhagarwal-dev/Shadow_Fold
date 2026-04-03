@@ -517,8 +517,21 @@ header h2 {
 }
 
 .small-drop-zone {
-    margin-top: 1rem;
-    padding: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.8rem;
+    min-height: 80px;
+}
+
+.small-drop-zone p {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+}
+
+.small-drop-zone .file-name-text {
+    font-size: 0.6rem;
+    margin-top: 8px;
+    color: var(--primary-color);
+    word-break: break-all;
 }
 
 #secret-file-name {
@@ -1181,10 +1194,14 @@ body {
     color: #00ff99;
     font-family: var(--font-secondary);
     font-size: 0.6rem;
-    padding: 10px;
+    padding: 12px;
     text-align: center;
     border-radius: 5px;
     letter-spacing: 1px;
+    height: calc(100% - 30px); /* Account for label height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .dual-layer-info-box {

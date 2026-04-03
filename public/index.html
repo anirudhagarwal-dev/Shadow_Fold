@@ -6,6 +6,7 @@
     <title>Shadow Fold – The Void</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/fflate.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
@@ -131,17 +132,20 @@
                                 <div class="dl-grid">
                                     <div class="dl-col">
                                         <div class="dl-label">LAYER 1 (REAL)</div>
-                                        <div class="dl-status-box">✓ PRIMARY ACTIVE</div>
+                                        <div class="dl-status-box" id="dl-real-status" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px;">
+                                            <div style="font-weight: bold;">✓ PRIMARY ACTIVE</div>
+                                            <div id="dl-real-file-name" style="font-size: 0.55rem; color: #aaa; margin-top: 5px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">(NO PAYLOAD)</div>
+                                        </div>
                                     </div>
                                     <div class="dl-col">
                                         <div class="dl-label">LAYER 2 (DECOY)</div>
-                                        <div id="decoy-file-drop-zone" class="drop-zone small-drop-zone">
-                                            <p>Drop Decoy</p>
+                                        <div id="decoy-file-drop-zone" class="drop-zone small-drop-zone" style="min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                            <p style="font-size: 0.7rem; letter-spacing: 1px;">Drop Decoy</p>
                                             <input type="file" id="decoy-file-input" hidden>
-                                            <span id="decoy-file-name" class="file-name-text"></span>
+                                            <span id="decoy-file-name" class="file-name-text" style="font-size: 0.6rem; margin-top: 5px; color: var(--primary-color);"></span>
                                         </div>
                                         <div class="password-container" style="margin-top: 10px; margin-bottom: 0;">
-                                            <input type="password" id="decoy-password" placeholder="Must be different from real password" style="font-size: 0.7rem; padding: 0.5rem; background: rgba(255,0,51,0.03); border-color: rgba(255,0,51,0.2);">
+                                            <input type="password" id="decoy-password" placeholder="Decoy Password" style="font-size: 0.7rem; padding: 0.6rem; background: rgba(255,0,51,0.03); border-color: rgba(255,0,51,0.2);">
                                             <div id="decoy-password-strength" class="password-strength"></div>
                                         </div>
                                     </div>

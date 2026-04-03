@@ -1,4 +1,75 @@
 // ==============================
+// PDF ENCRYPTION HELPER
+// ==============================
+async function encryptPDF(bytes, password) {
+    if (typeof PDFLib === 'undefined') return bytes;
+    
+    const header = new TextDecoder().decode(bytes.slice(0, 5));
+    if (header !== '%PDF-') {
+        console.error('[ShadowFold] Invalid PDF header. Skipping encryption.');
+        return bytes;
+    }
+
+    try {
+        // First attempt: direct encryption of the original document
+        const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+        
+        pdfDoc.encrypt({
+            userPassword: password,
+            ownerPassword: password,
+            permissions: {
+                printing: 'highResolution',
+                modifying: true,
+                copying: true,
+                annotating: true,
+                fillingForms: true,
+                contentAccessibility: true,
+                documentAssembly: true,
+            },
+        });
+
+        const encryptedBytes = await pdfDoc.save({ useObjectStreams: false });
+        
+        // Final validation
+        const newHeader = new TextDecoder().decode(encryptedBytes.slice(0, 5));
+        if (newHeader !== '%PDF-') {
+            throw new Error('PDF structure corrupted during save.');
+        }
+        
+        return encryptedBytes;
+    } catch (e) {
+        console.warn('[ShadowFold] Direct PDF encryption failed, attempting page-copy cleaning...', e);
+        try {
+            // Second attempt: Create a new document and copy pages to "clean" the structure
+            // This can resolve issues with complex PDF internal structures.
+            const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+            const cleanPdfDoc = await PDFLib.PDFDocument.create();
+            const pages = await cleanPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+            pages.forEach(page => cleanPdfDoc.addPage(page));
+
+            cleanPdfDoc.encrypt({
+                userPassword: password,
+                ownerPassword: password,
+                permissions: {
+                    printing: 'highResolution',
+                    modifying: true,
+                    copying: true,
+                    annotating: true,
+                    fillingForms: true,
+                    contentAccessibility: true,
+                    documentAssembly: true,
+                },
+            });
+
+            return await cleanPdfDoc.save({ useObjectStreams: false });
+        } catch (innerError) {
+            console.error('[ShadowFold] PDF cleaning/encryption failed completely.', innerError);
+            return bytes; // Final fallback to unencrypted original
+        }
+    }
+}
+
+// ==============================
 // DASHBOARD TRACKING
 // ==============================
 async function trackOperation(data) {
@@ -272,6 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDropZone('decode-image-drop-zone', 'decode-image-input', 'decode-image-preview');
     setupDropZone('decoy-file-drop-zone',   'decoy-file-input',   null, 'decoy-file-name');
 
+    updateDualLayerRealStatus();
+
     // --- Dual Layer Toggle ---
     const dualLayerCheckbox = document.getElementById('dual-layer-checkbox');
     const dlPanel           = document.getElementById('dual-layer-panel-container');
@@ -384,6 +457,23 @@ function addFilesToPack(files) {
     updateCapacity();
 }
 
+function updateDualLayerRealStatus() {
+    const realFileName = document.getElementById('dl-real-file-name');
+    if (!realFileName) return;
+
+    const files = window.SF_PackFiles || [];
+    if (files.length === 0) {
+        realFileName.textContent = '(NO PAYLOAD)';
+        realFileName.style.color = '#aaa';
+    } else if (files.length === 1) {
+        realFileName.textContent = files[0].file.name;
+        realFileName.style.color = '#00ff99';
+    } else {
+        realFileName.textContent = `${files.length} FILES SELECTED`;
+        realFileName.style.color = '#00ff99';
+    }
+}
+
 function renderPackList() {
     const list = document.getElementById('pack-file-list');
     const summary = document.getElementById('pack-summary');
@@ -397,6 +487,7 @@ function renderPackList() {
         if (summary) summary.style.display = 'none';
         if (actions) actions.style.display = 'none';
         if (badge) badge.style.display = 'none';
+        updateDualLayerRealStatus();
         return;
     }
 
@@ -433,12 +524,15 @@ function renderPackList() {
             </div>
         `;
     }).join('');
+
+    updateDualLayerRealStatus();
 }
 
 window.removePackFile = function(id) {
     window.SF_PackFiles = window.SF_PackFiles.filter(f => f.id !== id);
     renderPackList();
     updateCapacity();
+    updateDualLayerRealStatus();
 };
 
 async function compressImage(file, maxSizeBytes) { 
@@ -484,7 +578,7 @@ async function compressImage(file, maxSizeBytes) {
 // ==============================
 // MULTI-FILE PACKING LOGIC
 // ==============================
-async function buildSecretPayload() {
+async function buildSecretPayload(password) {
     const files = window.SF_PackFiles || [];
     if (files.length === 0) return null;
 
@@ -528,7 +622,22 @@ async function buildSecretPayload() {
             }
             fileEntry = { file: compressed.file, id: fileEntry.id };
         }
-        const bytes = new Uint8Array(await fileEntry.file.arrayBuffer());
+        
+        let bytes = new Uint8Array(await fileEntry.file.arrayBuffer());
+        
+        // --- FIXED: PDF-Native Encryption ---
+        if (ext === 'pdf' && password && typeof PDFLib !== 'undefined') {
+            console.log(`[ShadowFold] Initializing PDF-native protection for: ${fileEntry.file.name}`);
+            const originalSize = bytes.length;
+            console.log(`[ShadowFold] Original Size: ${formatBytes(originalSize)}`);
+
+            bytes = await encryptPDF(bytes, password);
+            
+            const encryptedSize = bytes.length;
+            console.log(`[ShadowFold] PDF-native encryption complete.`);
+            console.log(`[ShadowFold] Encrypted Size: ${formatBytes(encryptedSize)} (${encryptedSize} bytes)`);
+        }
+        
         const finalExt = fileEntry.file.name.split('.').pop().toLowerCase();
         return { bytes, ext: finalExt };
     }
@@ -558,8 +667,18 @@ async function buildSecretPayload() {
 // ==============================
 async function unpackPayload(fileData, fileExt) {
     if (fileExt !== 'sfpack') {
-        // Single file — trigger download as before
+        // Single file — trigger download
         const filename = `decoded.${fileExt}`;
+        
+        // Validation for PDF files
+        if (fileExt === 'pdf') {
+            const header = new TextDecoder().decode(fileData.slice(0, 5));
+            if (header !== '%PDF-') {
+                console.warn(`[ShadowFold] Warning: Decoded PDF does not have a valid header. Found: ${header}`);
+                // We still let the user download it, but warn in console.
+            }
+        }
+        
         downloadBlob(fileData, filename);
         return { fileCount: 1, totalSize: fileData.length, names: [filename] };
     }
@@ -576,14 +695,9 @@ async function unpackPayload(fileData, fileExt) {
             let totalSize = 0;
             const filenames = [];
             for (const name of names) {
-                const blob = new Blob([files[name]]);
+                downloadBlob(files[name], name);
                 totalSize += files[name].length;
                 filenames.push(name);
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = name;
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(a.href), 5000);
             }
             resolve({ fileCount: filenames.length, totalSize, names: filenames });
         });
@@ -591,12 +705,35 @@ async function unpackPayload(fileData, fileExt) {
 }
 
 function downloadBlob(data, filename) {
-    const blob = new Blob([data], { type: 'application/octet-stream' });
+    const ext = filename.split('.').pop().toLowerCase();
+    const mimeMap = {
+        'pdf': 'application/pdf',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'zip': 'application/zip',
+        'sfpack': 'application/octet-stream',
+        'txt': 'text/plain',
+        'mp3': 'audio/mpeg',
+        'mp4': 'video/mp4'
+    };
+    const type = mimeMap[ext] || 'application/octet-stream';
+    
+    // Ensure data is a Uint8Array for consistent Blob creation
+    const buffer = data instanceof Uint8Array ? data : new Uint8Array(data);
+    const blob = new Blob([buffer], { type: type });
+    
     const a    = document.createElement('a');
     a.href     = URL.createObjectURL(blob);
     a.download = filename;
     a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    
+    // Increased timeout for Blob revocation. PDF viewers in-browser often 
+    // need the URL to remain valid while rendering content streams.
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    
+    console.log(`[ShadowFold] Download triggered: ${filename} (${formatBytes(buffer.length)})`);
 }
 
 
@@ -862,26 +999,39 @@ async function handleEncode() {
     showLoader('FOLDING REALITY...');
 
     const canvas = document.getElementById('canvas');
-    const ctx    = canvas.getContext('2d');
+    const ctx    = canvas.getContext('2d', { 
+        willReadFrequently: true,
+        colorSpace: 'srgb' // Force standard color space to prevent profile shifts
+    });
 
     try {
-        const imageBitmap = await createImageBitmap(imageFile);
+        // Use colorSpaceConversion: 'none' to prevent the browser from shifting pixels
+        const imageBitmap = await createImageBitmap(imageFile, { colorSpaceConversion: 'none' });
         canvas.width  = imageBitmap.width;
         canvas.height = imageBitmap.height;
+        
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(imageBitmap, 0, 0);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        // Create a copy of the original pixels for PSNR and heatmap
-        const originalPixels = new Uint8Array(imageData.data);
         
-        // Pass the ClampedArray directly to avoid an extra copy in JS.
-        const imageBytes = imageData.data;
+        // Force alpha to 255 for all pixels to prevent lossy premultiplication 
+        // during PNG export. This is critical for bit-perfect steganography.
+        for (let i = 3; i < imageData.data.length; i += 4) {
+            imageData.data[i] = 255;
+        }
+
+        // Create a copy of the original pixels for PSNR and heatmap
+        const originalPixels = new Uint8Array(imageData.data.slice().buffer);
+        
+        // Pass a Uint8Array view into the buffer instead of a ClampedArray.
+        const imageBytes = new Uint8Array(imageData.data.buffer);
 
         // Sanity check
         if (imageBytes.length !== canvas.width * canvas.height * 4) {
             throw new Error(`Memory mismatch: Image size ${canvas.width}x${canvas.height} requires ${canvas.width * canvas.height * 4} bytes, but got ${imageBytes.length}.`);
         }
-        const payload     = await buildSecretPayload();
+        const payload     = await buildSecretPayload(password);
         if (!payload) throw new Error('Failed to build payload');
         
         const secretBytes = payload.bytes;
@@ -889,47 +1039,77 @@ async function handleEncode() {
 
         let result;
 
-        if (wasmVer === 'v2') {
-            // Best path: new build with width/height for strong per-image salt
-            let decoyBytes = new Uint8Array(0);
-            let decoyExt   = '';
-            if (hasDecoy) {
-                decoyBytes = new Uint8Array(await decoyInput.files[0].arrayBuffer());
-                decoyExt   = decoyInput.files[0].name.split('.').pop().toLowerCase();
-            }
-            result = mod.encode_data_wh(
-                imageBytes, secretBytes, ext, password,
-                decoyBytes, decoyExt, decoyPassword,
-                canvas.width, canvas.height
-            );
-        } else if (wasmVer === 'v1') {
-            // Mid build: 7-arg encode_data (dual-layer capable but no w/h salt)
-            let decoyBytes = new Uint8Array(0);
-            let decoyExt   = '';
-            if (hasDecoy) {
-                decoyBytes = new Uint8Array(await decoyInput.files[0].arrayBuffer());
-                decoyExt   = decoyInput.files[0].name.split('.').pop().toLowerCase();
-            }
-            result = mod.encode_data(
-                imageBytes, secretBytes, ext, password,
-                decoyBytes, decoyExt, decoyPassword
-            );
-        } else {
-            // v0: original compiled WASM — only 4 args, no dual-layer support
-            // Dual-layer simulation: embed decoy first, then real on top
-            if (hasDecoy) {
-                const decoyBytes = new Uint8Array(await decoyInput.files[0].arrayBuffer());
-                const decoyExt   = decoyInput.files[0].name.split('.').pop().toLowerCase();
-                const decoyResult = mod.encode_data(imageBytes, decoyBytes, decoyExt, decoyPassword);
-                if (decoyResult) {
-                    result = mod.encode_data(new Uint8Array(decoyResult), secretBytes, ext, password);
+        try {
+            if (wasmVer === 'v2') {
+                // Best path: new build with width/height for strong per-image salt
+                let decoyBytes = new Uint8Array(0);
+                let decoyExt   = '';
+                if (hasDecoy) {
+                    const decoyFile = decoyInput.files[0];
+                    let dBytes = new Uint8Array(await decoyFile.arrayBuffer());
+                    let dExt   = decoyFile.name.split('.').pop().toLowerCase();
+                    
+                    // --- FIXED: Decoy PDF-Native Encryption ---
+                    if (dExt === 'pdf' && decoyPassword && typeof PDFLib !== 'undefined') {
+                        console.log(`[ShadowFold] Initializing PDF-native protection for DECOY: ${decoyFile.name}`);
+                        dBytes = await encryptPDF(dBytes, decoyPassword);
+                        console.log(`[ShadowFold] Decoy PDF encrypted. Size: ${formatBytes(dBytes.length)}`);
+                    }
+
+                    decoyBytes = dBytes;
+                    decoyExt   = dExt;
+                }
+                result = mod.encode_data_wh(
+                    imageBytes, secretBytes, ext, password,
+                    decoyBytes, decoyExt, decoyPassword,
+                    canvas.width, canvas.height
+                );
+            } else if (wasmVer === 'v1') {
+                // Mid build: 7-arg encode_data (dual-layer capable but no w/h salt)
+                let decoyBytes = new Uint8Array(0);
+                let decoyExt   = '';
+                if (hasDecoy) {
+                    const decoyFile = decoyInput.files[0];
+                    let dBytes = new Uint8Array(await decoyFile.arrayBuffer());
+                    let dExt   = decoyFile.name.split('.').pop().toLowerCase();
+                    
+                    if (dExt === 'pdf' && decoyPassword && typeof PDFLib !== 'undefined') {
+                        dBytes = await encryptPDF(dBytes, decoyPassword);
+                    }
+
+                    decoyBytes = dBytes;
+                    decoyExt   = dExt;
+                }
+                result = mod.encode_data(
+                    imageBytes, secretBytes, ext, password,
+                    decoyBytes, decoyExt, decoyPassword
+                );
+            } else {
+                // v0: original compiled WASM — only 4 args, no dual-layer support
+                // Dual-layer simulation: embed decoy first, then real on top
+                if (hasDecoy) {
+                    const decoyFile = decoyInput.files[0];
+                    let dBytes = new Uint8Array(await decoyFile.arrayBuffer());
+                    let dExt   = decoyFile.name.split('.').pop().toLowerCase();
+                    
+                    if (dExt === 'pdf' && decoyPassword && typeof PDFLib !== 'undefined') {
+                        dBytes = await encryptPDF(dBytes, decoyPassword);
+                    }
+
+                    const decoyResult = mod.encode_data(imageBytes, dBytes, dExt, decoyPassword);
+                    if (decoyResult) {
+                        result = mod.encode_data(new Uint8Array(decoyResult), secretBytes, ext, password);
+                    } else {
+                        console.warn('[ShadowFold] Decoy skipped (capacity). Embedding real file only.');
+                        result = mod.encode_data(imageBytes, secretBytes, ext, password);
+                    }
                 } else {
-                    console.warn('[ShadowFold] Decoy skipped (capacity). Embedding real file only.');
                     result = mod.encode_data(imageBytes, secretBytes, ext, password);
                 }
-            } else {
-                result = mod.encode_data(imageBytes, secretBytes, ext, password);
             }
+        } catch (wasmErr) {
+            console.error('[ShadowFold] WASM Encode failure:', wasmErr);
+            throw new Error(`The steganographic engine failed to process this image. This usually happens if the carrier image is very large or if the system is out of memory.`);
         }
 
         if (!result) {
@@ -954,10 +1134,44 @@ async function handleEncode() {
         const newImageData = new ImageData(new Uint8ClampedArray(resultBytes), canvas.width, canvas.height);
         ctx.putImageData(newImageData, 0, 0);
 
-        const a = document.createElement('a');
-        a.href = canvas.toDataURL('image/png');
-        a.download = 'encoded.png';
-        a.click();
+        canvas.toBlob((blob) => {
+            if (!blob) throw new Error('Failed to generate PNG blob.');
+            const link = document.createElement('a');
+            link.download = `encoded_${Date.now()}.png`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            
+            // Stats
+            const psnrValue = calculatePSNR(originalPixels, resultBytes);
+            const psnrText  = psnrValue === Infinity ? '∞ dB' : psnrValue.toFixed(2) + ' dB';
+            const psnrCls   = psnrValue > 45 ? 'stat-good' : psnrValue > 35 ? 'stat-warn' : 'stat-fail';
+
+            const usagePct = totalCapacity > 0
+                ? ((secretBytes.length / totalCapacity) * 100).toFixed(1)
+                : '—';
+
+            if (stats) stats.innerHTML = buildStatsHTML([
+                { label: 'STATUS',               value: 'FOLDED SUCCESSFULLY',                       cls: 'stat-good' },
+                { label: 'IMAGE QUALITY (PSNR)', value: psnrText,                                    cls: psnrCls },
+                { label: 'ENCRYPTION',           value: 'AES-256-CBC ✓',                             cls: 'stat-good' },
+                { label: 'KEY DERIVATION',       value: 'PBKDF2-SHA256 · 100k iter ✓',               cls: 'stat-good' },
+                { label: 'DUAL LAYER',           value: hasDecoy ? 'ACTIVE — TRUE DENIABILITY ✓' : 'INACTIVE', cls: hasDecoy ? 'stat-good' : '' },
+                { label: 'USAGE',                value: `${formatBytes(secretBytes.length)} / ${formatBytes(totalCapacity)} (${usagePct}%)` }
+            ]);
+
+            if (window.SFLog) window.SFLog.add({
+                type: 'encode', 
+                file: window.SF_PackFiles.length > 1 ? `${window.SF_PackFiles.length} files (.sfpack)` : window.SF_PackFiles[0].file.name,
+                ext, size: secretBytes.length, 
+                fileCount: window.SF_PackFiles.length,
+                carrier: imageFile.name,
+                capacity: totalCapacity,
+                status: 'ok'
+            });
+
+            hideLoader();
+            showStatus('THE VOID HAS SEALED YOUR DATA.', 'success');
+        }, 'image/png');
 
         // Clear password fields from DOM after use
         setTimeout(() => { 
@@ -1077,12 +1291,18 @@ async function handleDecode() {
     showLoader('ENTERING THE VOID...');
 
     const canvas = document.getElementById('canvas');
-    const ctx    = canvas.getContext('2d');
+    const ctx    = canvas.getContext('2d', { 
+        willReadFrequently: true,
+        colorSpace: 'srgb' // Force standard color space
+    });
 
     try {
-        const imageBitmap = await createImageBitmap(imageInput.files[0]);
+        // Use colorSpaceConversion: 'none' to prevent browser color corrections
+        const imageBitmap = await createImageBitmap(imageInput.files[0], { colorSpaceConversion: 'none' });
         canvas.width  = imageBitmap.width;
         canvas.height = imageBitmap.height;
+        
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(imageBitmap, 0, 0);
 
         if (!canvas.width || !canvas.height) {
@@ -1090,9 +1310,8 @@ async function handleDecode() {
         }
         const imageData  = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Pass the ClampedArray directly to avoid an extra copy in JS.
-        // Emscripten's val handles this by copying it into the WASM heap.
-        const imageBytes = imageData.data;
+        // Pass a Uint8Array view into the buffer instead of a ClampedArray.
+        const imageBytes = new Uint8Array(imageData.data.buffer);
 
         // Sanity check
         if (imageBytes.length !== canvas.width * canvas.height * 4) {
@@ -1100,22 +1319,27 @@ async function handleDecode() {
         }
 
         let result;
-        if (wasmVer === 'v2') {
-            if (isDual) {
-                result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, canvas.width, canvas.height);
+        try {
+            if (wasmVer === 'v2') {
+                if (isDual) {
+                    result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, canvas.width, canvas.height);
+                } else {
+                    result = mod.decode_data_wh(imageBytes, password, canvas.width, canvas.height);
+                }
+            } else if (wasmVer === 'v1') {
+                // Mid build: decode_data_dual might exist, but if not fall back
+                if (isDual && typeof mod.decode_data_dual === 'function') {
+                    result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, canvas.width, canvas.height);
+                } else {
+                    result = mod.decode_data(imageBytes, password);
+                }
             } else {
-                result = mod.decode_data_wh(imageBytes, password, canvas.width, canvas.height);
-            }
-        } else if (wasmVer === 'v1') {
-            // Mid build: decode_data_dual might exist, but if not fall back
-            if (isDual && typeof mod.decode_data_dual === 'function') {
-                result = mod.decode_data_dual(imageBytes, realPwd, decoyPwd, extractDecoy, canvas.width, canvas.height);
-            } else {
+                // v0: only single decode_data
                 result = mod.decode_data(imageBytes, password);
             }
-        } else {
-            // v0: only single decode_data
-            result = mod.decode_data(imageBytes, password);
+        } catch (wasmErr) {
+            console.error('[ShadowFold] WASM Decode failure:', wasmErr);
+            throw new Error(`The steganographic engine failed to process this image. This usually happens if the carrier image is very large or if the system is out of memory.`);
         }
 
         if (!result || !result.data) {
@@ -1132,9 +1356,8 @@ async function handleDecode() {
             return;
         }
 
-        // result.data is an Emscripten val representing a Uint8Array view.
-        // We MUST slice it immediately to create a JS-owned copy before WASM heap grows.
-        const fileData = new Uint8Array(result.data).slice();
+        // result.data is already a JS-owned Uint8Array from copyToJSArray()
+        const fileData = result.data.slice();
         const fileExt  = result.extension || 'bin';
 
         const unpackResult = await unpackPayload(fileData, fileExt);

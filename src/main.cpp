@@ -23,25 +23,25 @@ using namespace emscripten;
 // ============================================================
 
 // Bulk copy from JS Uint8Array to C++ vector.
-// Uses a subarray view into HEAPU8 then JS set() — one crossing
-// instead of N crossings for an N-byte image.
 std::vector<uint8_t> vecFromJSArray(const val& jsArray) {
-    if (!jsArray.hasOwnProperty("length")) return {};
-    const unsigned l = jsArray["length"].as<unsigned>();
+    if (jsArray.isNull() || jsArray.isUndefined()) return {};
+    
+    // Check if it's a TypedArray and get its length
+    val lengthVal = jsArray["length"];
+    if (lengthVal.isUndefined()) return {};
+    const size_t l = lengthVal.as<size_t>();
     if (l == 0) return {};
+
     std::vector<uint8_t> v(l);
-    val heap = val::module_property("HEAPU8");
-    val mem  = val::global("Uint8Array").new_(
-        heap["buffer"],
-        reinterpret_cast<uintptr_t>(v.data()),
-        l
-    );
-    mem.call<void>("set", jsArray);
+    // Use typed_memory_view for fast copy
+    auto view = typed_memory_view(l, v.data());
+    view.call<void>("set", jsArray);
     return v;
 }
 
 val copyToJSArray(const std::vector<uint8_t>& vec) {
     if (vec.empty()) return val::global("Uint8Array").new_(0);
+    // Create new Uint8Array on JS side and copy data into it
     val result = val::global("Uint8Array").new_(vec.size());
     result.call<void>("set", val(typed_memory_view(vec.size(), vec.data())));
     return result;
@@ -117,11 +117,13 @@ DerivedParams derive_params(const std::string& pass,
 size_t derive_split(const std::string& real_pass,
                      const std::string& decoy_pass,
                      size_t total) {
-    std::string combined = real_pass + "\x00" + decoy_pass;
+    std::string combined = real_pass;
+    combined.push_back('\0');
+    combined += decoy_pass;
     const uint8_t salt[] = "shadow_fold_split_v2";
     uint8_t out[4];
     pbkdf2_sha256(
-        (const uint8_t*)combined.c_str(), combined.length(),
+        (const uint8_t*)combined.data(), combined.length(),
         salt, sizeof(salt) - 1,
         10000,
         out, 4
@@ -221,6 +223,7 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
     if (offset + 96 > indices.size()) return {};
 
     std::vector<uint8_t> hdr = read_bytes(carrier, indices, offset, 12);
+    if (hdr.empty()) return {};
 
     uint32_t orig_size, comp_size, ext_len;
     std::memcpy(&orig_size, &hdr[0], 4);
@@ -228,8 +231,8 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
     std::memcpy(&ext_len,   &hdr[8], 4);
 
     // Sanity bounds (500 MB max, 16 char ext)
-    if (orig_size > 500u * 1024 * 1024 ||
-        comp_size > 500u * 1024 * 1024 ||
+    if (orig_size == 0 || orig_size > 500u * 1024 * 1024 ||
+        comp_size == 0 || comp_size > 500u * 1024 * 1024 ||
         ext_len   > 16)
         return {};
 
@@ -241,6 +244,7 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
 
     // Read full blob
     std::vector<uint8_t> blob = read_bytes(carrier, indices, offset, blob_bytes);
+    if (blob.empty()) return {};
 
     // Parse extension
     std::string ext(blob.begin() + 12, blob.begin() + 12 + ext_len);
@@ -257,6 +261,11 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
     uLongf final_sz = orig_size;
     if (uncompress(plain.data(), &final_sz, cipher.data(), comp_size) != Z_OK)
         return {};
+
+    // Ensure the uncompressed size matches exactly what was expected
+    if (final_sz != orig_size) {
+        plain.resize(final_sz);
+    }
 
     return { plain, ext };
 }
@@ -294,24 +303,23 @@ val encode_data_wh(val image_data,
 
     std::vector<uint8_t> carrier = vecFromJSArray(image_data);
 
-    // Build sorted pool of all non-alpha channel indices
-    std::vector<int> pool;
-    pool.reserve(carrier.size() * 3 / 4);
+    // Build indices pool directly to save memory
+    std::vector<int> indices;
+    indices.reserve(carrier.size() * 3 / 4);
     for (size_t i = 0; i < carrier.size(); ++i)
         if ((i + 1) % 4 != 0)
-            pool.push_back(static_cast<int>(i));
+            indices.push_back(static_cast<int>(i));
 
     const bool has_decoy = !decoy_password.empty();
-
     DerivedParams real_p = derive_params(password, img_width, img_height);
     std::vector<uint8_t> real_bytes = vecFromJSArray(file_data);
+    
     if (real_bytes.empty()) { std::cerr << "[C++] Real payload empty.\n"; return val::null(); }
     std::vector<uint8_t> real_blob = build_payload(real_bytes, file_extension, real_p);
     if (real_blob.empty()) { std::cerr << "[C++] Compression failed.\n"; return val::null(); }
 
     if (!has_decoy) {
-        // Single-layer: shuffle full pool by real seed
-        std::vector<int> indices = pool;
+        // Single-layer: shuffle indices directly
         std::mt19937_64 rng(real_p.prng_seed);
         std::shuffle(indices.begin(), indices.end(), rng);
         if (!embed_blob(carrier, real_blob, indices, 0)) {
@@ -322,18 +330,18 @@ val encode_data_wh(val image_data,
 
     // Dual-layer: compute disjoint partitions
     DerivedParams decoy_p = derive_params(decoy_password, img_width, img_height);
-    size_t split = derive_split(password, decoy_password, pool.size());
+    size_t split = derive_split(password, decoy_password, indices.size());
 
-    std::vector<int> decoy_indices(pool.begin(), pool.begin() + split);
+    // Shuffle decoy partition
     {
         std::mt19937_64 rng(decoy_p.prng_seed);
-        std::shuffle(decoy_indices.begin(), decoy_indices.end(), rng);
+        std::shuffle(indices.begin(), indices.begin() + split, rng);
     }
 
-    std::vector<int> real_indices(pool.begin() + split, pool.end());
+    // Shuffle real partition
     {
         std::mt19937_64 rng(real_p.prng_seed);
-        std::shuffle(real_indices.begin(), real_indices.end(), rng);
+        std::shuffle(indices.begin() + split, indices.end(), rng);
     }
 
     // Embed decoy
@@ -341,13 +349,13 @@ val encode_data_wh(val image_data,
     if (!decoy_bytes.empty()) {
         std::vector<uint8_t> decoy_blob = build_payload(decoy_bytes, decoy_extension, decoy_p);
         if (!decoy_blob.empty()) {
-            if (!embed_blob(carrier, decoy_blob, decoy_indices, 0))
+            if (!embed_blob(carrier, decoy_blob, indices, 0))
                 std::cerr << "[C++] Decoy capacity exceeded — skipped.\n";
         }
     }
 
-    // Embed real
-    if (!embed_blob(carrier, real_blob, real_indices, 0)) {
+    // Embed real (at the start of the second partition)
+    if (!embed_blob(carrier, real_blob, indices, split)) {
         std::cerr << "[C++] Real payload capacity exceeded.\n"; return val::null();
     }
 
@@ -414,22 +422,20 @@ val decode_data_dual(val image_data,
                      uint32_t img_width, uint32_t img_height) {
     std::vector<uint8_t> carrier = vecFromJSArray(image_data);
 
-    std::vector<int> pool;
-    pool.reserve(carrier.size() * 3 / 4);
+    std::vector<int> indices;
+    indices.reserve(carrier.size() * 3 / 4);
     for (size_t i = 0; i < carrier.size(); ++i)
         if ((i + 1) % 4 != 0)
-            pool.push_back(static_cast<int>(i));
+            indices.push_back(static_cast<int>(i));
 
-    size_t split = derive_split(password, decoy_password, pool.size());
+    size_t split = derive_split(password, decoy_password, indices.size());
 
     if (decode_decoy_layer) {
         DerivedParams dp = derive_params(decoy_password, img_width, img_height);
-        std::vector<int> decoy_idx(pool.begin(), pool.begin() + split);
-        {
-            std::mt19937_64 rng(dp.prng_seed);
-            std::shuffle(decoy_idx.begin(), decoy_idx.end(), rng);
-        }
-        DecodedFile r = decode_blob(carrier, decoy_idx, 0, dp);
+        std::mt19937_64 rng(dp.prng_seed);
+        std::shuffle(indices.begin(), indices.begin() + split, rng);
+        
+        DecodedFile r = decode_blob(carrier, indices, 0, dp);
         if (r.data.empty()) return val::null();
         val ret = val::object();
         ret.set("data",      copyToJSArray(r.data));
@@ -437,12 +443,10 @@ val decode_data_dual(val image_data,
         return ret;
     } else {
         DerivedParams rp = derive_params(password, img_width, img_height);
-        std::vector<int> real_idx(pool.begin() + split, pool.end());
-        {
-            std::mt19937_64 rng(rp.prng_seed);
-            std::shuffle(real_idx.begin(), real_idx.end(), rng);
-        }
-        DecodedFile r = decode_blob(carrier, real_idx, 0, rp);
+        std::mt19937_64 rng(rp.prng_seed);
+        std::shuffle(indices.begin() + split, indices.end(), rng);
+        
+        DecodedFile r = decode_blob(carrier, indices, split, rp);
         if (r.data.empty()) return val::null();
         val ret = val::object();
         ret.set("data",      copyToJSArray(r.data));
