@@ -16,7 +16,7 @@
         }
         .page-header h1 { 
             font-family: var(--font-primary); 
-            font-size: 1.8rem; 
+            font-size: 2.5rem; 
             color: var(--primary-color); 
             text-shadow: 0 0 10px var(--primary-color), 0 0 30px rgba(255,0,51,0.3); 
             letter-spacing: .15em; 
@@ -24,8 +24,8 @@
         }
         .header-actions { display: flex; gap: 10px; align-items: center; }
         .btn-clear {
-            font-family: var(--font-secondary); font-size: .68rem; letter-spacing: .15em;
-            padding: 8px 16px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.25);
+            font-family: var(--font-secondary); font-size: 1rem; letter-spacing: .15em;
+            padding: 10px 20px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.25);
             background: transparent; color: #555; cursor: pointer;
             text-transform: uppercase; transition: all .2s;
         }
@@ -33,30 +33,30 @@
 
         /* stats bar */
         .stats-bar {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;
             margin-bottom: 25px; animation: fadeIn .5s ease .1s both;
             width: 100%;
         }
         .stat-card {
             background: rgba(255, 0, 51, 0.02); border: 1px solid rgba(255,0,51,0.12);
-            border-radius: 8px; padding: 15px;
+            border-radius: 8px; padding: 20px;
             transition: border-color .2s;
         }
         .stat-card:hover { border-color: rgba(255,0,51,0.3); }
-        .stat-label { font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .18em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
-        .stat-value { font-family: var(--font-primary); font-size: 1.2rem; color: var(--primary-color); letter-spacing: .05em; }
-        .stat-sub { font-family: var(--font-secondary); font-size: .65rem; color: var(--text-muted); margin-top: 3px; letter-spacing: 1px; }
+        .stat-label { font-family: var(--font-secondary); font-size: 1rem; letter-spacing: .18em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+        .stat-value { font-family: var(--font-primary); font-size: 2rem; color: var(--primary-color); letter-spacing: .05em; }
+        .stat-sub { font-family: var(--font-secondary); font-size: 0.9rem; color: var(--text-muted); margin-top: 5px; letter-spacing: 1px; }
 
         /* filter bar */
         .filter-bar {
-            display: flex; gap: 10px; align-items: center; margin-bottom: 15px;
+            display: flex; gap: 15px; align-items: center; margin-bottom: 20px;
             flex-wrap: wrap; animation: fadeIn .5s ease .15s both;
             width: 100%;
         }
-        .filter-label { font-family: var(--font-secondary); font-size: .7rem; color: var(--text-secondary); letter-spacing: .12em; }
+        .filter-label { font-family: var(--font-secondary); font-size: 1.1rem; color: var(--text-secondary); letter-spacing: .12em; }
         .filter-btn {
-            font-family: var(--font-secondary); font-size: .7rem; letter-spacing: .12em;
-            padding: 5px 12px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.15);
+            font-family: var(--font-secondary); font-size: 1.1rem; letter-spacing: .12em;
+            padding: 8px 18px; border-radius: 4px; border: 1px solid rgba(255,0,51,0.15);
             background: transparent; color: var(--text-secondary); cursor: pointer;
             text-transform: uppercase; transition: all .2s;
         }
@@ -64,19 +64,19 @@
         .filter-btn.active { color: var(--primary-color); border-color: rgba(255,0,51,0.5); background: rgba(255,0,51,0.06); }
         .search-input {
             margin-left: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,0,51,0.15);
-            border-radius: 4px; padding: 6px 14px; color: var(--text-color);
-            font-family: var(--font-secondary); font-size: .75rem; letter-spacing: .06em;
-            outline: none; width: 180px; transition: border-color .2s;
+            border-radius: 4px; padding: 10px 20px; color: var(--text-color);
+            font-family: var(--font-secondary); font-size: 1.2rem; letter-spacing: .06em;
+            outline: none; width: 250px; transition: border-color .2s;
         }
         .search-input:focus { border-color: rgba(255,0,51,0.45); }
         .search-input::placeholder { color: var(--text-muted); }
 
         /* table */
-        .table-wrap { animation: fadeIn .5s ease .2s both; overflow-x: auto; width: 100%; max-height: 40vh; }
+        .table-wrap { animation: fadeIn .5s ease .2s both; overflow-x: auto; width: 100%; max-height: 50vh; }
         table { width: 100%; border-collapse: collapse; }
         thead th {
-            font-family: var(--font-secondary); font-size: .65rem; letter-spacing: .2em;
-            color: var(--text-muted); text-transform: uppercase; padding: 10px 14px;
+            font-family: var(--font-secondary); font-size: 1rem; letter-spacing: .2em;
+            color: var(--text-muted); text-transform: uppercase; padding: 15px 20px;
             border-bottom: 1px solid rgba(255,0,51,0.12); text-align: left;
             position: sticky; top: 0; background: rgba(10, 10, 10, 0.9); z-index: 5;
         }
@@ -86,16 +86,16 @@
         }
         tbody tr:hover { background: rgba(255,0,51,0.03); }
         tbody td {
-            padding: 10px 14px; font-family: var(--font-secondary); font-size: .75rem;
+            padding: 15px 20px; font-family: var(--font-secondary); font-size: 1.1rem;
             color: var(--text-secondary); vertical-align: middle;
         }
-        .td-type { display: inline-block; font-family: var(--font-primary); font-size: .55rem; letter-spacing: .1em; padding: 2px 6px; border-radius: 3px; }
+        .td-type { display: inline-block; font-family: var(--font-primary); font-size: 0.9rem; letter-spacing: .1em; padding: 4px 10px; border-radius: 3px; }
         .td-type.encode { color: var(--primary-color); background: rgba(255,0,51,0.08); border: 1px solid rgba(255,0,51,0.2); }
         .td-type.decode { color: rgba(0,200,120,0.8); background: rgba(0,200,120,0.06); border: 1px solid rgba(0,200,120,0.2); }
-        .td-file { color: #888; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .td-size { color: #444; white-space: nowrap; }
-        .td-time { color: #383838; white-space: nowrap; font-size: .65rem; }
-        .td-status .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .td-file { color: #888; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .td-size { color: #666; white-space: nowrap; }
+        .td-time { color: #555; white-space: nowrap; font-size: 0.9rem; }
+        .td-status .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .dot.ok { background: rgba(0,200,120,0.8); box-shadow: 0 0 4px rgba(0,200,120,0.5); }
         .dot.fail { background: var(--primary-color); box-shadow: 0 0 4px var(--primary-color); }
         .td-actions { display: flex; gap: 8px; }

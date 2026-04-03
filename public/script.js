@@ -320,11 +320,84 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.tab-button');
     const contents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
+        tab.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent default link behavior if any
+            const currentActiveTab = document.querySelector('.tab-button.active');
+            const currentActiveContent = document.querySelector('.tab-content.active');
+            
+            if (currentActiveTab) currentActiveTab.classList.remove('active');
             tab.classList.add('active');
-            contents.forEach(c => c.classList.remove('active'));
-            document.getElementById(tab.dataset.tab).classList.add('active');
+
+            if (currentActiveContent) {
+                currentActiveContent.classList.remove('active');
+                currentActiveContent.classList.add('fade-out'); // Add fade-out class
+                setTimeout(() => {
+                    currentActiveContent.classList.remove('fade-out');
+                    // Only activate content within the currently active stego mode
+                    const activeStegoMode = document.querySelector('.stego-mode-content.active');
+                    if (activeStegoMode) {
+                        activeStegoMode.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        activeStegoMode.querySelector(`#${tab.dataset.tab}${activeStegoMode.id === 'image-stego-mode' ? '-image' : ''}`).classList.add('active');
+                    }
+                }, 300); // Match CSS transition duration
+            } else {
+                // If no active content, just activate the new one
+                const activeStegoMode = document.querySelector('.stego-mode-content.active');
+                if (activeStegoMode) {
+                    activeStegoMode.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    activeStegoMode.querySelector(`#${tab.dataset.tab}${activeStegoMode.id === 'image-stego-mode' ? '-image' : ''}`).classList.add('active');
+                }
+            }
+        });
+    });
+
+    // --- Mode Toggles (Text/Image) ---
+    const modeToggles = document.querySelectorAll('.mode-toggle-button');
+    const stegoModes = document.querySelectorAll('.stego-mode-content');
+
+    modeToggles.forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            const currentActiveMode = document.querySelector('.stego-mode-content.active');
+            const currentActiveModeToggle = document.querySelector('.mode-toggle-button.active');
+
+            if (currentActiveModeToggle) currentActiveModeToggle.classList.remove('active');
+            toggle.classList.add('active');
+
+            if (currentActiveMode) {
+                currentActiveMode.classList.remove('active');
+                currentActiveMode.classList.add('fade-out');
+                setTimeout(() => {
+                    currentActiveMode.classList.remove('fade-out');
+                    document.getElementById(`${toggle.dataset.mode}-stego-mode`).classList.add('active');
+                    // Reset tab to encode when switching modes
+                    const activeStegoMode = document.querySelector('.stego-mode-content.active');
+                    if (activeStegoMode) {
+                        activeStegoMode.querySelectorAll('.tab-button').forEach((t, i) => {
+                            if (i === 0) t.classList.add('active');
+                            else t.classList.remove('active');
+                        });
+                        activeStegoMode.querySelectorAll('.tab-content').forEach((c, i) => {
+                            if (i === 0) c.classList.add('active');
+                            else c.classList.remove('active');
+                        });
+                    }
+                }, 300); // Match CSS transition duration
+            } else {
+                document.getElementById(`${toggle.dataset.mode}-stego-mode`).classList.add('active');
+                // Reset tab to encode when switching modes
+                const activeStegoMode = document.querySelector('.stego-mode-content.active');
+                if (activeStegoMode) {
+                    activeStegoMode.querySelectorAll('.tab-button').forEach((t, i) => {
+                        if (i === 0) t.classList.add('active');
+                        else t.classList.remove('active');
+                    });
+                    activeStegoMode.querySelectorAll('.tab-content').forEach((c, i) => {
+                        if (i === 0) c.classList.add('active');
+                        else c.classList.remove('active');
+                    });
+                }
+            }
         });
     });
 
@@ -342,6 +415,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPayloadZone('payload-pack-zone', 'secret-file-input');
     setupDropZone('decode-image-drop-zone', 'decode-image-input', 'decode-image-preview');
     setupDropZone('decoy-file-drop-zone',   'decoy-file-input',   null, 'decoy-file-name');
+
+    // Image Steganography Drop Zones
+    setupDropZone('cover-image-drop-zone', 'cover-image-input', document.getElementById('cover-image-preview-canvas'), null, true);
+    setupDropZone('secret-image-drop-zone', 'secret-image-input', document.getElementById('secret-image-preview-canvas'), null, true);
+    setupDropZone('encoded-image-drop-zone', 'encoded-image-input', document.getElementById('encoded-image-preview-canvas'), null, true);
 
     updateDualLayerRealStatus();
 
@@ -413,6 +491,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Buttons ---
     document.getElementById('encode-button').addEventListener('click', handleEncode);
     document.getElementById('decode-button').addEventListener('click', handleDecode);
+    
+    // Image Steganography Buttons
+    const encodeImageBtn = document.getElementById('encode-image-button');
+    if (encodeImageBtn) encodeImageBtn.addEventListener('click', handleImageToImageEncode);
+    
+    const decodeImageBtn = document.getElementById('decode-image-button');
+    if (decodeImageBtn) decodeImageBtn.addEventListener('click', handleImageToImageDecode);
 });
 
 // ==============================
@@ -810,7 +895,7 @@ function setupStrengthMeter(inputId, meterId) {
 // ==============================
 // DROP ZONE HELPER
 // ==============================
-function setupDropZone(zoneId, inputId, previewId, nameId) {
+function setupDropZone(zoneId, inputId, previewId, nameId, isCanvas = false) {
     const dropZone   = document.getElementById(zoneId);
     const input      = document.getElementById(inputId);
     if (!dropZone || !input) return;
@@ -834,21 +919,42 @@ function setupDropZone(zoneId, inputId, previewId, nameId) {
         }
     });
     input.addEventListener('change', () => {
-        handleFileChange(input, preview, nameDisplay);
+        handleFileChange(input, preview, nameDisplay, isCanvas);
         if (inputId === 'encode-image-input' || inputId === 'secret-file-input') {
             updateCapacity();
         }
     });
 }
 
-function handleFileChange(input, preview, nameDisplay) {
+function handleFileChange(input, preview, nameDisplay, isCanvas) {
     const file = input.files[0];
     if (!file) return;
-    if (preview) {
+
+    const dropZone = preview && preview.parentElement ? preview.parentElement : null;
+    const dropZoneText = dropZone ? dropZone.querySelector('p') : null;
+
+    if (isCanvas) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = preview;
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                canvas.style.display = 'block';
+                if (dropZoneText) dropZoneText.style.display = 'none';
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    } else if (preview) {
         const reader = new FileReader();
         reader.onload = e => {
             preview.src = e.target.result;
             preview.style.display = 'block';
+            if (dropZoneText) dropZoneText.style.display = 'none';
         };
         reader.readAsDataURL(file);
     }
@@ -937,6 +1043,178 @@ function updateCapacity() {
         }
         URL.revokeObjectURL(img.src);
     };
+}
+
+// ==============================
+// IMAGE-TO-IMAGE STEGANOGRAPHY
+// ==============================
+
+function resizeImage(img, width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    return ctx.getImageData(0, 0, width, height);
+}
+
+async function handleImageToImageEncode() {
+    const coverCanvas = document.getElementById('cover-image-preview-canvas');
+    const secretCanvas = document.getElementById('secret-image-preview-canvas');
+    const downloadLink = document.getElementById('download-encoded-image');
+
+    if (!coverCanvas.width || !secretCanvas.width) {
+        alert('Please upload both a cover and a secret image.');
+        return;
+    }
+
+    showLoader('MERGING VISUAL DATA...');
+
+    // Wait a bit for UI to show loader
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+        const coverCtx = coverCanvas.getContext('2d');
+        const coverData = coverCtx.getImageData(0, 0, coverCanvas.width, coverCanvas.height);
+        
+        // Use the secret canvas directly to avoid slow toDataURL
+        const secretData = resizeImage(secretCanvas, coverCanvas.width, coverCanvas.height);
+        
+        // LSB Encoding (4 bits per channel for better quality)
+        for (let i = 0; i < coverData.data.length; i += 4) {
+            for (let j = 0; j < 3; j++) { // RGB only
+                // Clear the 4 LSBs of cover
+                coverData.data[i + j] = coverData.data[i + j] & 0xF0;
+                // Get the 4 MSBs of secret (bits 4-7) and move them to bits 0-3
+                const secretBits = (secretData.data[i + j] & 0xF0) >> 4;
+                // Set the 4 LSBs of cover
+                coverData.data[i + j] = coverData.data[i + j] | secretBits;
+            }
+            // Keep Alpha channel of cover at 255 (fully opaque) to avoid artifacts
+            coverData.data[i + 3] = 255;
+        }
+
+        // Update the cover canvas directly with the encoded data
+        coverCtx.putImageData(coverData, 0, 0);
+
+        // Also update the encoded image preview in the DECODE tab automatically
+        const decodeEncodedCanvas = document.getElementById('encoded-image-preview-canvas');
+        if (decodeEncodedCanvas) {
+            decodeEncodedCanvas.width = coverCanvas.width;
+            decodeEncodedCanvas.height = coverCanvas.height;
+            const decodeEncodedCtx = decodeEncodedCanvas.getContext('2d');
+            decodeEncodedCtx.putImageData(coverData, 0, 0);
+            decodeEncodedCanvas.style.display = 'block';
+            
+            // Hide the text in the decode drop zone
+            const decodeDropZoneText = decodeEncodedCanvas.parentElement ? decodeEncodedCanvas.parentElement.querySelector('p') : null;
+            if (decodeDropZoneText) decodeDropZoneText.style.display = 'none';
+        }
+
+        // Prepare download
+        const dataUrl = coverCanvas.toDataURL('image/png');
+        downloadLink.href = dataUrl;
+        downloadLink.style.display = 'inline-block';
+        downloadLink.textContent = '✓ DOWNLOAD ENCODED IMAGE';
+        
+        hideLoader();
+        // Removed alert as requested
+        
+        // Show success indicator on the button
+        const encodeBtn = document.getElementById('encode-image-button');
+        if (encodeBtn) {
+            const originalText = encodeBtn.textContent;
+            encodeBtn.textContent = '✓ ENCODING COMPLETE';
+            encodeBtn.classList.add('success-pulse');
+            setTimeout(() => {
+                encodeBtn.textContent = originalText;
+                encodeBtn.classList.remove('success-pulse');
+            }, 3000);
+        }
+
+        // Track operation
+        trackOperation({
+            type: 'image-encode',
+            file: 'encoded_image.png',
+            size: dataUrl.length,
+            status: 'ok'
+        });
+
+    } catch (err) {
+        console.error(err);
+        hideLoader();
+        alert('Encoding failed: ' + err.message);
+    }
+}
+
+async function handleImageToImageDecode() {
+    const encodedCanvas = document.getElementById('encoded-image-preview-canvas');
+    const extractedCanvas = document.getElementById('extracted-secret-image-canvas');
+    const downloadLink = document.getElementById('download-decoded-image');
+
+    if (!encodedCanvas.width) {
+        alert('Please upload an encoded image.');
+        return;
+    }
+
+    showLoader('EXTRACTING VISUAL DATA...');
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+        const encodedCtx = encodedCanvas.getContext('2d');
+        const encodedData = encodedCtx.getImageData(0, 0, encodedCanvas.width, encodedCanvas.height);
+        
+        const extractedData = new ImageData(encodedCanvas.width, encodedCanvas.height);
+
+        // Extract 4 bits per channel
+        for (let i = 0; i < encodedData.data.length; i += 4) {
+            for (let j = 0; j < 3; j++) { // RGB only
+                // Get the 4 LSBs of encoded image
+                const bits = encodedData.data[i + j] & 0x0F;
+                // Move them to the 4 MSBs of the extracted image (bits 4-7)
+                extractedData.data[i + j] = bits << 4; 
+            }
+            extractedData.data[i + 3] = 255; // Fully opaque
+        }
+
+        extractedCanvas.width = encodedCanvas.width;
+        extractedCanvas.height = encodedCanvas.height;
+        const extractedCtx = extractedCanvas.getContext('2d');
+        extractedCtx.putImageData(extractedData, 0, 0);
+
+        // Prepare download
+        const dataUrl = extractedCanvas.toDataURL('image/png');
+        downloadLink.href = dataUrl;
+        downloadLink.style.display = 'inline-block';
+        downloadLink.textContent = '✓ DOWNLOAD EXTRACTED IMAGE';
+
+        hideLoader();
+        // Removed alert as requested
+
+        // Show success indicator on the button
+        const decodeBtn = document.getElementById('decode-image-button');
+        if (decodeBtn) {
+            const originalText = decodeBtn.textContent;
+            decodeBtn.textContent = '✓ DECODING COMPLETE';
+            decodeBtn.classList.add('success-pulse');
+            setTimeout(() => {
+                decodeBtn.textContent = originalText;
+                decodeBtn.classList.remove('success-pulse');
+            }, 3000);
+        }
+
+        trackOperation({
+            type: 'image-decode',
+            file: 'extracted_image.png',
+            size: dataUrl.length,
+            status: 'ok'
+        });
+
+    } catch (err) {
+        console.error(err);
+        hideLoader();
+        alert('Decoding failed: ' + err.message);
+    }
 }
 
 // ==============================

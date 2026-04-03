@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow Fold – The Void</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/fflate.min.js"></script>
+    <script src="https://unpkg.com/fflate@0.8.2/dist/fflate.min.js"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -80,7 +80,13 @@
                 <button class="tab-button" data-tab="decode">DECODE</button>
             </div>
 
-            <main id="encode" class="tab-content active">
+            <div class="mode-toggle-container">
+                <button class="mode-toggle-button active" data-mode="text">TEXT MODE</button>
+                <button class="mode-toggle-button" data-mode="image">IMAGE MODE</button>
+            </div>
+
+            <div id="text-stego-mode" class="stego-mode-content active">
+                <main id="encode" class="tab-content active">
                 <div class="split-layout">
                     <div class="panel left-panel">
                         <h3>RIGHT SIDE UP</h3>
@@ -172,7 +178,6 @@
                     <div id="encode-stats" class="stats-container"></div>
                 </div>
             </main>
-
             <main id="decode" class="tab-content">
                 <div class="split-layout">
                     <div class="panel left-panel">
@@ -232,6 +237,55 @@
                     <div id="decode-stats" class="stats-container"></div>
                 </div>
             </main>
+            </div> <!-- End of text-stego-mode -->
+
+            <div id="image-stego-mode" class="stego-mode-content">
+                <main id="encode-image" class="tab-content active">
+                    <div class="split-layout">
+                        <div class="panel left-panel">
+                            <h3>Cover Image</h3>
+                            <div id="cover-image-drop-zone" class="drop-zone">
+                                <p>Drag & Drop Cover Image or Click to Upload</p>
+                                <input type="file" id="cover-image-input" accept="image/png, image/bmp" hidden>
+                                <canvas id="cover-image-preview-canvas" class="preview-canvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <h3>Secret Image</h3>
+                            <div id="secret-image-drop-zone" class="drop-zone">
+                                <p>Drag & Drop Secret Image or Click to Upload</p>
+                                <input type="file" id="secret-image-input" accept="image/png, image/bmp" hidden>
+                                <canvas id="secret-image-preview-canvas" class="preview-canvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-area" style="margin-top: 20px; text-align: center; width: 100%;">
+                        <button id="encode-image-button" class="action-button" style="margin-top: 10px;">ENCODE IMAGE</button>
+                        <a id="download-encoded-image" download="encoded_image.png" style="display: none;">Download Encoded Image</a>
+                    </div>
+                </main>
+
+                <main id="decode-image" class="tab-content">
+                    <div class="split-layout">
+                        <div class="panel left-panel">
+                            <h3>Encoded Image</h3>
+                            <div id="encoded-image-drop-zone" class="drop-zone">
+                                <p>Drag & Drop Encoded Image or Click to Upload</p>
+                                <input type="file" id="encoded-image-input" accept="image/png, image/bmp" hidden>
+                                <canvas id="encoded-image-preview-canvas" class="preview-canvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <h3>Extracted Secret Image</h3>
+                            <canvas id="extracted-secret-image-canvas" class="preview-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="action-area" style="margin-top: 20px; text-align: center; width: 100%;">
+                        <button id="decode-image-button" class="action-button decode-glow" style="margin-top: 10px;">DECODE IMAGE</button>
+                        <a id="download-decoded-image" download="decoded_image.png" style="display: none;">Download Decoded Image</a>
+                    </div>
+                </main>
+            </div>
 
             <div id="loader" class="loader-overlay">
                 <div class="loader-content">
