@@ -165,14 +165,39 @@ std::vector<uint8_t> build_payload(const std::vector<uint8_t>& raw,
 
     // Header: orig_size(4) | comp_size(4) | ext_len(4) | ext_bytes
     uint32_t orig32 = static_cast<uint32_t>(raw.size());
+    uint32_t comp32 = static_cast<uint32_t>(comp_size); // Use a new variable for clarity
     uint32_t ext32  = static_cast<uint32_t>(ext.length());
 
     std::vector<uint8_t> blob(12);
-    std::memcpy(&blob[0], &orig32,    4);
-    std::memcpy(&blob[4], &comp_size, 4);
-    std::memcpy(&blob[8], &ext32,     4);
+    // Explicitly write in Big-Endian format for cross-platform consistency
+    blob[0] = (orig32 >> 24) & 0xFF;
+    blob[1] = (orig32 >> 16) & 0xFF;
+    blob[2] = (orig32 >>  8) & 0xFF;
+    blob[3] = (orig32      ) & 0xFF;
+
+    blob[4] = (comp32 >> 24) & 0xFF;
+    blob[5] = (comp32 >> 16) & 0xFF;
+    blob[6] = (comp32 >>  8) & 0xFF;
+    blob[7] = (comp32      ) & 0xFF;
+
+    blob[8] = (ext32 >> 24) & 0xFF;
+    blob[9] = (ext32 >> 16) & 0xFF;
+    blob[10] = (ext32 >>  8) & 0xFF;
+    blob[11] = (ext32      ) & 0xFF;
+    
     blob.insert(blob.end(), ext.begin(), ext.end());
     blob.insert(blob.end(), comp.begin(), comp.end());
+    std::cerr << "[C++] build_payload: orig_size=" << raw.size() << ", comp_size=" << comp_size << ", blob_total_size=" << blob.size() << "\n";
+    std::cerr << "[C++] build_payload: raw_first_10_bytes=";
+    for (size_t i = 0; i < std::min((size_t)10, raw.size()); ++i) {
+        std::cerr << std::hex << (int)raw[i] << " ";
+    }
+    std::cerr << std::dec << "\n";
+    std::cerr << "[C++] build_payload: blob_first_10_bytes=";
+    for (size_t i = 0; i < std::min((size_t)10, blob.size()); ++i) {
+        std::cerr << std::hex << (int)blob[i] << " ";
+    }
+    std::cerr << std::dec << "\n";
     return blob;
 }
 
@@ -182,18 +207,20 @@ std::vector<uint8_t> build_payload(const std::vector<uint8_t>& raw,
 bool embed_blob(std::vector<uint8_t>& carrier,
                 const std::vector<uint8_t>& blob,
                 const std::vector<int>& indices,
-                size_t offset) {
-    size_t bits = blob.size() * 8;
-    if (offset + bits > indices.size()) return false;
-    for (size_t i = 0; i < bits; ++i) {
+                size_t bit_offset) {
+    size_t total_bits = blob.size() * 8;
+    if (bit_offset + total_bits > indices.size()) return false;
+    
+    for (size_t i = 0; i < total_bits; ++i) {
+        // MSB-first bit extraction
         uint8_t bit = (blob[i / 8] >> (7 - (i % 8))) & 1;
-        encode_bit(carrier[indices[offset + i]], bit);
+        encode_bit(carrier[indices[bit_offset + i]], bit);
     }
     return true;
 }
 
 // ============================================================
-// DECODE blob from carrier, starting at indices[offset]
+// DECODE blob from carrier, starting at indices[bit_offset]
 // Returns decoded file or {empty, ""} on failure.
 // ============================================================
 struct DecodedFile {
@@ -201,15 +228,17 @@ struct DecodedFile {
     std::string extension;
 };
 
-// Helper: read `byte_count` bytes starting at indices[offset]
+// Helper: read `byte_count` bytes starting at indices[bit_offset]
 static std::vector<uint8_t> read_bytes(const std::vector<uint8_t>& carrier,
                                         const std::vector<int>& indices,
-                                        size_t offset, size_t byte_count) {
+                                        size_t bit_offset, size_t byte_count) {
     std::vector<uint8_t> out(byte_count);
     for (size_t b = 0; b < byte_count; ++b) {
         uint8_t byte = 0;
-        for (int bit = 0; bit < 8; ++bit)
-            byte = (byte << 1) | decode_bit(carrier[indices[offset + b * 8 + bit]]);
+        for (int i = 0; i < 8; ++i) {
+            // MSB-first byte reconstruction
+            byte = (byte << 1) | decode_bit(carrier[indices[bit_offset + b * 8 + i]]);
+        }
         out[b] = byte;
     }
     return out;
@@ -217,18 +246,18 @@ static std::vector<uint8_t> read_bytes(const std::vector<uint8_t>& carrier,
 
 DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
                          const std::vector<int>& indices,
-                         size_t offset,
+                         size_t bit_offset,
                          const DerivedParams& p) {
-    // Need at least 12-byte fixed header
-    if (offset + 96 > indices.size()) return {};
+    // Need at least 12-byte fixed header (96 bits)
+    if (bit_offset + 96 > indices.size()) return {};
 
-    std::vector<uint8_t> hdr = read_bytes(carrier, indices, offset, 12);
+    std::vector<uint8_t> hdr = read_bytes(carrier, indices, bit_offset, 12);
     if (hdr.empty()) return {};
 
-    uint32_t orig_size, comp_size, ext_len;
-    std::memcpy(&orig_size, &hdr[0], 4);
-    std::memcpy(&comp_size, &hdr[4], 4);
-    std::memcpy(&ext_len,   &hdr[8], 4);
+    // Explicit Big-Endian deserialization for header
+    uint32_t orig_size = (hdr[0] << 24) | (hdr[1] << 16) | (hdr[2] << 8) | hdr[3];
+    uint32_t comp_size = (hdr[4] << 24) | (hdr[5] << 16) | (hdr[6] << 8) | hdr[7];
+    uint32_t ext_len   = (hdr[8] << 24) | (hdr[9] << 16) | (hdr[10] << 8) | hdr[11];
 
     // Sanity bounds (500 MB max, 16 char ext)
     if (orig_size == 0 || orig_size > 500u * 1024 * 1024 ||
@@ -240,33 +269,40 @@ DecodedFile decode_blob(const std::vector<uint8_t>& carrier,
     size_t padded       = ((comp_size + 15) / 16) * 16;
     size_t blob_bytes   = header_total + padded;
 
-    if (offset + blob_bytes * 8 > indices.size()) return {};
+    if (bit_offset + blob_bytes * 8 > indices.size()) return {};
 
-    // Read full blob
-    std::vector<uint8_t> blob = read_bytes(carrier, indices, offset, blob_bytes);
+    // Read full blob starting from bit_offset
+    std::vector<uint8_t> blob = read_bytes(carrier, indices, bit_offset, blob_bytes);
     if (blob.empty()) return {};
 
     // Parse extension
     std::string ext(blob.begin() + 12, blob.begin() + 12 + ext_len);
 
-    // Decrypt
+    // Decrypt in-place from cipher buffer
     std::vector<uint8_t> cipher(blob.begin() + header_total, blob.end());
     AES_ctx ctx;
     AES_init_ctx_iv(&ctx, p.key, p.iv);
     AES_CBC_decrypt_buffer(&ctx, cipher.data(), cipher.size());
 
-    // Decompress
+    // Decompress only the comp_size bytes
     cipher.resize(comp_size);
     std::vector<uint8_t> plain(orig_size);
     uLongf final_sz = orig_size;
     if (uncompress(plain.data(), &final_sz, cipher.data(), comp_size) != Z_OK)
         return {};
 
-    // Ensure the uncompressed size matches exactly what was expected
+    // Ensure size matches exactly
     if (final_sz != orig_size) {
         plain.resize(final_sz);
     }
-
+    
+    std::cerr << "[C++] decode_blob: orig_size=" << orig_size << ", comp_size=" << comp_size << ", decoded_size=" << plain.size() << ", ext=" << ext << "\n";
+    std::cerr << "[C++] decode_blob: plain_first_10_bytes=";
+    for (size_t i = 0; i < std::min((size_t)10, plain.size()); ++i) {
+        std::cerr << std::hex << (int)plain[i] << " ";
+    }
+    std::cerr << std::dec << "\n";
+    
     return { plain, ext };
 }
 
