@@ -1,6 +1,6 @@
 # SHADOW FOLD – The Visual Void
 
-(sf.png)
+![Shadow Fold Logo](sf.png)
 
 **Shadow Fold** is a high-performance, experimental steganography engine designed for the modern web. It allows users to hide sensitive data within plain-sight carrier images (PNG/BMP) using advanced cryptographic and steganographic techniques.
 
